@@ -176,6 +176,18 @@
       </div>
       <div id="autodetect-controls" style="display:none">
         <div class="overlay-hint">Reads your chatbox and auto-starts timers when you've planted all patches.<br>Set the target number of patches per type below.</div>
+        <div class="overlay-hint" style="margin-top:6px;color:var(--warn)">⚠ Set the chatbox position to match where your chatbox is on screen (absolute screen pixels).</div>
+        <div class="overlay-pos-row" style="flex-wrap:wrap;gap:4px;margin-top:6px">
+          <label class="crop-row-label">X</label>
+          <input type="number" id="chat-pos-x" value="5" min="0" max="3840" style="width:56px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Crimson Pro',serif;font-size:12px;padding:3px 6px;outline:none;" oninput="saveChatPos()">
+          <label class="crop-row-label">Y</label>
+          <input type="number" id="chat-pos-y" value="580" min="0" max="2160" style="width:56px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Crimson Pro',serif;font-size:12px;padding:3px 6px;outline:none;" oninput="saveChatPos()">
+          <label class="crop-row-label">W</label>
+          <input type="number" id="chat-pos-w" value="400" min="100" max="1920" style="width:56px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Crimson Pro',serif;font-size:12px;padding:3px 6px;outline:none;" oninput="saveChatPos()">
+          <label class="crop-row-label">H</label>
+          <input type="number" id="chat-pos-h" value="175" min="50" max="600" style="width:56px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Crimson Pro',serif;font-size:12px;padding:3px 6px;outline:none;" oninput="saveChatPos()">
+        </div>
+        <div class="overlay-hint" style="margin-top:4px">X/Y = top-left corner of your chatbox in screen pixels. W/H = size of chatbox.</div>
         <div class="setup-crops" id="autodetect-counts">
         </div>
         <div class="overlay-hint" style="margin-top:6px">Requires <strong style="color:var(--text)">Pixel</strong> permission in Alt1 settings.</div>
@@ -530,22 +542,31 @@
     if (el) el.textContent = msg;
   }
 
+  function getChatPos() {
+    return {
+      x: parseInt(localStorage.getItem('rs3_chat_x') || '5'),
+      y: parseInt(localStorage.getItem('rs3_chat_y') || '580'),
+      w: parseInt(localStorage.getItem('rs3_chat_w') || '400'),
+      h: parseInt(localStorage.getItem('rs3_chat_h') || '175'),
+    };
+  }
+
+  function saveChatPos() {
+    const x = parseInt(document.getElementById('chat-pos-x').value) || 5;
+    const y = parseInt(document.getElementById('chat-pos-y').value) || 580;
+    const w = parseInt(document.getElementById('chat-pos-w').value) || 400;
+    const h = parseInt(document.getElementById('chat-pos-h').value) || 175;
+    localStorage.setItem('rs3_chat_x', x);
+    localStorage.setItem('rs3_chat_y', y);
+    localStorage.setItem('rs3_chat_w', w);
+    localStorage.setItem('rs3_chat_h', h);
+  }
+
   function readChat() {
     if (!autoDetect) return;
-    if (typeof alt1 === 'undefined' || !alt1.permissionPixel || !alt1.rsLinked) return;
+    if (typeof alt1 === 'undefined' || !alt1.permissionPixel) return;
     try {
-      // The RS3 chatbox occupies the bottom-left of the window.
-      // Typical height is ~165px for a default-size chatbox.
-      // We read from rsY+rsHeight-170 downward, left half of window.
-      const rsX = alt1.rsX, rsY = alt1.rsY;
-      const rsW = alt1.rsWidth, rsH = alt1.rsHeight;
-
-      // Capture the chatbox area — bottom-left region
-      // Increase height to 200 and use full width to be safe
-      const chatAreaW = Math.round(rsW * 0.6);
-      const chatAreaH = 200;
-      const chatAreaX = rsX;
-      const chatAreaY = rsY + rsH - chatAreaH;
+      const { x: chatAreaX, y: chatAreaY, w: chatAreaW, h: chatAreaH } = getChatPos();
 
       const handle = alt1.bindRegion(chatAreaX, chatAreaY, chatAreaW, chatAreaH);
       if (!handle && handle !== 0) {
@@ -553,52 +574,39 @@
         return;
       }
 
-      // bindReadColorString(handle, x, y) reads text at position by detecting
-      // pixel colours — no font file needed. Returns the string or empty.
       const lines = [];
       for (let y = 8; y < chatAreaH - 22; y += 14) {
         let str = '';
         try { str = alt1.bindReadColorString(handle, 8, y) || ''; } catch(e2) {}
-        if (str && str.trim().length > 3) {
-          lines.push(str.trim());
-        }
+        if (str && str.trim().length > 3) lines.push(str.trim());
       }
 
-      // Debug: sample some pixel colours to verify we're hitting the chatbox
       if (debugMode) {
+        const samples = [];
         try {
-          const samples = [];
-          for (let sy = 10; sy < chatAreaH - 10; sy += 30) {
+          for (let sy = 10; sy < chatAreaH - 10; sy += 25) {
             const px = alt1.bindGetPixel(handle, 10, sy);
             if (px !== undefined && px !== null) {
-              const r = (px >> 16) & 0xff, g = (px >> 8) & 0xff, b = px & 0xff;
+              const r=(px>>16)&0xff, g=(px>>8)&0xff, b=px&0xff;
               samples.push(`y${sy}:rgb(${r},${g},${b})`);
             }
           }
-          const sampleEl = document.getElementById('debug-samples');
-          if (sampleEl) sampleEl.textContent = samples.join('  ');
         } catch(pe) {}
+        const dbg = document.getElementById('debug-lines');
+        const sEl = document.getElementById('debug-samples');
+        const info = `captureX:${chatAreaX} captureY:${chatAreaY} captureW:${chatAreaW} captureH:${chatAreaH} handle:${handle}`;
+        if (dbg) dbg.innerHTML = `<div style="color:var(--text-dim);font-size:9px;margin-bottom:3px">${esc(info)}</div>`
+          + (lines.length ? lines.map(l=>`<div style="border-bottom:1px solid #1a2a1b;padding:1px 0">${esc(l)}</div>`).join('') : '<div style="color:var(--text-dim)">— no lines —</div>');
+        if (sEl) sEl.textContent = samples.join('  ');
       }
 
-      if (!chatReaderReady && lines.length > 0) {
+      if (lines.length > 0) {
         chatReaderReady = true;
         updateChatStatus('👁 Watching chat...');
-      } else if (chatReaderReady && lines.length === 0) {
-        updateChatStatus('⚠ No text read — check chatbox is visible & not transparent');
+      } else {
+        updateChatStatus('⚠ No text — adjust X/Y/W/H below to match your chatbox');
       }
 
-      // Debug: show last lines in panel
-      if (debugMode) {
-        const dbg = document.getElementById('debug-lines');
-        if (dbg) {
-          const info = `rsX:${rsX} rsY:${rsY} rsW:${rsW} rsH:${rsH} | captureX:${chatAreaX} captureY:${chatAreaY} captureW:${chatAreaW} captureH:${chatAreaH} | handle:${handle}`;
-          dbg.innerHTML = `<div style="color:var(--text-dim);font-size:9px;margin-bottom:4px">${esc(info)}</div>` + (lines.length
-            ? lines.map(l => `<div style="border-bottom:1px solid #1a2a1b;padding:1px 0">${esc(l)}</div>`).join('')
-            : '<div style="color:var(--text-dim)">— no lines captured —</div>');
-        }
-      }
-
-      // Only process lines we haven't seen in the last scan
       lines.forEach(line => {
         if (!lastChatLines.includes(line)) onChatLine(line);
       });
@@ -689,6 +697,12 @@
   document.getElementById('autodetect-enabled').checked=autoDetect;
   document.getElementById('autodetect-controls').style.display=autoDetect?'':'none';
   if (autoDetect) startChatReading();
+  // Restore chat position inputs
+  const cp = getChatPos();
+  document.getElementById('chat-pos-x').value = cp.x;
+  document.getElementById('chat-pos-y').value = cp.y;
+  document.getElementById('chat-pos-w').value = cp.w;
+  document.getElementById('chat-pos-h').value = cp.h;
   </script>
 </body>
 </html>
