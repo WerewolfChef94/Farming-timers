@@ -624,32 +624,39 @@
       return;
     }
     const { x, y, w, h } = getChatPos();
-    // Draw a bright green border rectangle around the selected region
-    // so you can see exactly what area will be captured
-    const colBorder = a1color(0, 255, 80, 255);     // bright green
-    const colFill   = a1color(0, 255, 80, 40);      // faint green fill
-    const ttl       = 3000; // 3 seconds
+    const ttl = 4000;
+    const colGreen  = a1color(0, 255, 80);    // solid bright green
+    const colYellow = a1color(255, 220, 0);   // solid yellow for row markers
+    const colRed    = a1color(255, 60, 60);   // solid red for corners
+
     alt1.overLaySetGroup('chatpreview');
     alt1.overLayClearGroup('chatpreview');
-    // Fill
-    alt1.overLayRect(colFill,   x,     y,     w,  h,  ttl, 0);
-    // Top edge
-    alt1.overLayRect(colBorder, x,     y,     w,  2,  ttl, 0);
-    // Bottom edge
-    alt1.overLayRect(colBorder, x,     y+h-2, w,  2,  ttl, 0);
-    // Left edge
-    alt1.overLayRect(colBorder, x,     y,     2,  h,  ttl, 0);
-    // Right edge
-    alt1.overLayRect(colBorder, x+w-2, y,     2,  h,  ttl, 0);
-    // Label at top-left
-    alt1.overLayText(`Chat capture (${w}x${h})`, colBorder, 11, x+4, y+3, ttl);
-    // Row markers — show where each line will be read
-    const colRow = a1color(255, 200, 0, 80);
+
+    // Top border (2px tall)
+    alt1.overLayRect(colGreen, x,       y,       w, 2,  ttl, 0);
+    // Bottom border
+    alt1.overLayRect(colGreen, x,       y+h-2,   w, 2,  ttl, 0);
+    // Left border
+    alt1.overLayRect(colGreen, x,       y,       2, h,  ttl, 0);
+    // Right border
+    alt1.overLayRect(colGreen, x+w-2,   y,       2, h,  ttl, 0);
+
+    // Corner markers (bigger squares so they're easy to spot)
+    alt1.overLayRect(colRed, x,     y,     8, 8, ttl, 0);
+    alt1.overLayRect(colRed, x+w-8, y,     8, 8, ttl, 0);
+    alt1.overLayRect(colRed, x,     y+h-8, 8, 8, ttl, 0);
+    alt1.overLayRect(colRed, x+w-8, y+h-8, 8, 8, ttl, 0);
+
+    // Row scan lines — show where each text line will be read
     for (let ry = 8; ry < h - 22; ry += 14) {
-      alt1.overLayRect(colRow, x+4, y+ry, w-8, 12, ttl, 0);
+      alt1.overLayRect(colYellow, x+4, y+ry, w-8, 2, ttl, 0);
     }
+
+    // Label
+    alt1.overLayText(`Chat: ${x},${y} (${w}x${h})`, colGreen, 11, x+10, y+4, ttl);
+
     setTimeout(() => alt1.overLayClearGroup('chatpreview'), ttl + 100);
-    showFlash('👁 Preview drawn for 3s — look at your screen!');
+    showFlash('👁 Green box = capture area, yellow lines = text rows');
   }
 
   function onAutoDetectToggle(checked) {
