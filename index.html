@@ -550,15 +550,13 @@
         return;
       }
 
-      // Each chat line is ~14px tall in RS3 default font size.
-      // Tab bar at bottom ~20px, so scan from top down to ~155px
+      // bindReadColorString(handle, x, y) reads text at position by detecting
+      // pixel colours — no font file needed. Returns the string or empty.
       const lines = [];
       for (let y = 8; y < chatAreaH - 22; y += 14) {
-        // Try 'chat' font first, fall back to 'rs2' — Alt1 version differences
-        let str = alt1.bindReadString(handle, 'chat', 8, y);
-        if (!str || str.trim().length < 3) str = alt1.bindReadString(handle, 'rs2', 8, y);
-        if (!str || str.trim().length < 3) str = alt1.bindReadString(handle, 'chat', 0, y);
-        if (str && typeof str === 'string' && str.trim().length > 3) {
+        let str = '';
+        try { str = alt1.bindReadColorString(handle, 8, y) || ''; } catch(e2) {}
+        if (str && str.trim().length > 3) {
           lines.push(str.trim());
         }
       }
