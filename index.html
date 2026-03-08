@@ -651,6 +651,8 @@
     setTimeout(() => alt1.overLayClearGroup('chatpreview'), ttl + 100);
     showFlash('👁 Preview drawn for 3s — look at your screen!');
   }
+
+  function onAutoDetectToggle(checked) {
     autoDetect = checked;
     localStorage.setItem('rs3_autodetect', String(checked));
     document.getElementById('autodetect-controls').style.display = checked ? '' : 'none';
