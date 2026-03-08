@@ -180,6 +180,15 @@
         </div>
         <div class="overlay-hint" style="margin-top:6px">Requires <strong style="color:var(--text)">Pixel</strong> permission in Alt1 settings.</div>
         <div id="chat-status" style="margin-top:6px;font-size:11px;color:var(--accent);min-height:16px;"></div>
+        <div style="margin-top:6px">
+          <label style="font-size:10px;color:var(--text-dim);font-family:'Cinzel',serif;letter-spacing:1px">
+            <input type="checkbox" id="debug-enabled" onchange="debugMode=this.checked;document.getElementById('debug-panel').style.display=this.checked?'':'none'"> DEBUG
+          </label>
+        </div>
+        <div id="debug-panel" style="display:none;margin-top:6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px;max-height:140px;overflow-y:auto">
+          <div style="font-size:9px;color:var(--text-dim);font-family:'Cinzel',serif;letter-spacing:1px;margin-bottom:4px">LAST LINES READ FROM CHAT:</div>
+          <div id="debug-lines" style="font-size:10px;color:var(--text);font-family:monospace;line-height:1.6"></div>
+        </div>
       </div>
     </div>
     <div class="setup-section">
@@ -221,22 +230,21 @@
   // Chat message patterns for auto-detection
   // Each entry: { id, regex } — regex must match the chat message
   const CHAT_PATTERNS = [
-    { id:'herb',     regex:/you plant \d+ \w+ seeds? in the herb patch/i },
-    { id:'bush',     regex:/you plant a \w+ bush seed in the bush patch/i },
-    { id:'flower',   regex:/you plant a \w+ flower seed in the flower patch/i },
-    { id:'mushroom', regex:/you plant a morchella mushroom spore in the farming patch/i },
-    { id:'tree',     regex:/you plant a \w+ sapling in the tree patch/i },
-    { id:'fruit',    regex:/you plant the \w+ tree sapling in the fruit tree patch/i },
+    { id:'herb',     regex:/you\s+plant\s+\d+\s+\w+\s+seeds?\s+in\s+the\s+herb\s+patch/i },
+    { id:'bush',     regex:/you\s+plant\s+a\s+\w+\s+(?:bush\s+)?seed\s+in\s+the\s+bush\s+patch/i },
+    { id:'flower',   regex:/you\s+plant\s+a\s+\w+\s+(?:flower\s+)?seed\s+in\s+the\s+flower\s+patch/i },
+    { id:'mushroom', regex:/you\s+plant\s+a\s+morchella\s+mushroom\s+spore/i },
+    { id:'tree',     regex:/you\s+plant\s+a\s+\w+\s+sapling\s+in\s+the\s+tree\s+patch/i },
+    { id:'fruit',    regex:/you\s+plant\s+the\s+\w+\s+(?:tree\s+)?sapling\s+in\s+the\s+fruit\s+tree\s+patch/i },
   ];
 
-  // Harvest patterns — only trigger reset if timer is complete
   const HARVEST_PATTERNS = [
-    { id:'herb',     regex:/you begin to harvest the herb patch/i },
-    { id:'bush',     regex:/you begin to harvest the bush patch/i },
-    { id:'flower',   regex:/you begin to harvest the flower patch/i },
-    { id:'mushroom', regex:/you begin to harvest the farming patch/i },
-    { id:'tree',     regex:/you begin to harvest the tree patch/i },
-    { id:'fruit',    regex:/you begin to harvest the fruit tree patch/i },
+    { id:'herb',     regex:/you\s+(?:begin\s+to\s+)?harvest\s+the\s+herb\s+patch/i },
+    { id:'bush',     regex:/you\s+(?:begin\s+to\s+)?harvest\s+the\s+bush\s+patch/i },
+    { id:'flower',   regex:/you\s+(?:begin\s+to\s+)?harvest\s+the\s+flower\s+patch/i },
+    { id:'mushroom', regex:/you\s+(?:begin\s+to\s+)?harvest\s+the\s+(?:farming|mushroom)\s+patch/i },
+    { id:'tree',     regex:/you\s+(?:begin\s+to\s+)?harvest\s+the\s+tree\s+patch/i },
+    { id:'fruit',    regex:/you\s+(?:begin\s+to\s+)?harvest\s+the\s+fruit\s+tree\s+patch/i },
   ];
 
   let PATCHES    = loadPatches();
@@ -251,6 +259,7 @@
   let plantCounts     = {}; // { patchId: count } — how many planting messages seen this run
   let chatInterval    = null;
   let lastChatLines   = [];
+  let debugMode       = false;
 
   if (typeof alt1 === 'undefined') document.getElementById('alt1-warning').style.display = 'block';
   if (window.alt1) alt1.identifyAppUrl("https://werewolfchef94.github.io/Farming-timers/appconfig.json");
@@ -557,6 +566,16 @@
         updateChatStatus('👁 Watching chat...');
       } else if (chatReaderReady && lines.length === 0) {
         updateChatStatus('⚠ No text read — check chatbox is visible & not transparent');
+      }
+
+      // Debug: show last lines in panel
+      if (debugMode) {
+        const dbg = document.getElementById('debug-lines');
+        if (dbg) {
+          dbg.innerHTML = lines.length
+            ? lines.map(l => `<div style="border-bottom:1px solid #1a2a1b;padding:1px 0">${esc(l)}</div>`).join('')
+            : '<div style="color:var(--text-dim)">— no lines captured —</div>';
+        }
       }
 
       // Only process lines we haven't seen in the last scan
