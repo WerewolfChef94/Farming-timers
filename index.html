@@ -165,6 +165,22 @@
   </div>
 
   <div class="tab-content" id="tab-setup">
+    <!-- Auto-detect section -->
+    <div class="setup-section">
+      <div class="setup-section-header">
+        <div class="setup-section-title">🔍 Auto-Detect</div>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="autodetect-enabled" onchange="onAutoDetectToggle(this.checked)">
+          <span class="toggle-label">Enable</span>
+        </label>
+      </div>
+      <div id="autodetect-controls" style="display:none">
+        <div class="overlay-hint">Reads your chatbox and auto-starts timers when you've planted all patches.<br>Set the target number of patches per type below.</div>
+        <div class="setup-crops" id="autodetect-counts">
+        </div>
+        <div class="overlay-hint" style="margin-top:6px">Requires <strong style="color:var(--text)">Pixel</strong> permission in Alt1 settings.</div>
+      </div>
+    </div>
     <div class="setup-section">
       <div class="setup-section-header">
         <div class="setup-section-title">🖥 Screen Overlay</div>
@@ -193,12 +209,33 @@
 
   <script>
   const DEFAULT_PATCHES = [
-    { id:'herb',     icon:'🌿', name:'Herb',      crops:[{name:'Guam',duration:80},{name:'Marrentill',duration:80},{name:'Tarromin',duration:80},{name:'Harralander',duration:80},{name:'Ranarr',duration:80},{name:'Toadflax',duration:80},{name:'Irit',duration:80},{name:'Avantoe',duration:80},{name:'Kwuarm',duration:80},{name:'Snapdragon',duration:80},{name:'Cadantine',duration:80},{name:'Lantadyme',duration:80},{name:'Dwarf Weed',duration:80},{name:'Torstol',duration:80},{name:'Arbuck',duration:80}] },
-    { id:'mushroom', icon:'🍄', name:'Mushroom',  crops:[{name:'Bittercap Mushroom',duration:240}] },
-    { id:'tree',     icon:'🌳', name:'Tree',      crops:[{name:'Oak',duration:160},{name:'Willow',duration:280},{name:'Maple',duration:480},{name:'Yew',duration:960},{name:'Magic',duration:1600}] },
-    { id:'fruit',    icon:'🍎', name:'Fruit Tree',crops:[{name:'Apple',duration:960},{name:'Banana',duration:960},{name:'Orange',duration:960},{name:'Curry',duration:960},{name:'Pineapple',duration:1120},{name:'Papaya',duration:1120},{name:'Palm',duration:1440},{name:'Dragonfruit',duration:1440}] },
-    { id:'bush',     icon:'🫐', name:'Bush',      crops:[{name:'Redberry',duration:160},{name:'Cadavaberry',duration:200},{name:'Dwellberry',duration:240},{name:'Jangerberry',duration:280},{name:'Whiteberry',duration:320},{name:'Poison Ivy',duration:400}] },
-    { id:'flower',   icon:'🌸', name:'Flower',    crops:[{name:'Starbloom',duration:20},{name:'Limpwurt',duration:20}] }
+    { id:'herb',     icon:'🌿', name:'Herb',      patchCount:8,  crops:[{name:'Guam',duration:80},{name:'Marrentill',duration:80},{name:'Tarromin',duration:80},{name:'Harralander',duration:80},{name:'Ranarr',duration:80},{name:'Toadflax',duration:80},{name:'Irit',duration:80},{name:'Avantoe',duration:80},{name:'Kwuarm',duration:80},{name:'Snapdragon',duration:80},{name:'Cadantine',duration:80},{name:'Lantadyme',duration:80},{name:'Dwarf Weed',duration:80},{name:'Torstol',duration:80},{name:'Arbuck',duration:80}] },
+    { id:'mushroom', icon:'🍄', name:'Mushroom',  patchCount:3,  crops:[{name:'Bittercap Mushroom',duration:240}] },
+    { id:'tree',     icon:'🌳', name:'Tree',      patchCount:7,  crops:[{name:'Oak',duration:160},{name:'Willow',duration:280},{name:'Maple',duration:480},{name:'Yew',duration:960},{name:'Magic',duration:1600}] },
+    { id:'fruit',    icon:'🍎', name:'Fruit Tree',patchCount:7,  crops:[{name:'Apple',duration:960},{name:'Banana',duration:960},{name:'Orange',duration:960},{name:'Curry',duration:960},{name:'Pineapple',duration:1120},{name:'Papaya',duration:1120},{name:'Palm',duration:1440},{name:'Dragonfruit',duration:1440}] },
+    { id:'bush',     icon:'🫐', name:'Bush',      patchCount:5,  crops:[{name:'Redberry',duration:160},{name:'Cadavaberry',duration:200},{name:'Dwellberry',duration:240},{name:'Jangerberry',duration:280},{name:'Whiteberry',duration:320},{name:'Poison Ivy',duration:400}] },
+    { id:'flower',   icon:'🌸', name:'Flower',    patchCount:5,  crops:[{name:'Starbloom',duration:20},{name:'Limpwurt',duration:20}] }
+  ];
+
+  // Chat message patterns for auto-detection
+  // Each entry: { id, regex } — regex must match the chat message
+  const CHAT_PATTERNS = [
+    { id:'herb',     regex:/you plant \d+ \w+ seeds? in the herb patch/i },
+    { id:'bush',     regex:/you plant a \w+ bush seed in the bush patch/i },
+    { id:'flower',   regex:/you plant a \w+ flower seed in the flower patch/i },
+    { id:'mushroom', regex:/you plant a morchella mushroom spore in the farming patch/i },
+    { id:'tree',     regex:/you plant a \w+ sapling in the tree patch/i },
+    { id:'fruit',    regex:/you plant the \w+ tree sapling in the fruit tree patch/i },
+  ];
+
+  // Harvest patterns — only trigger reset if timer is complete
+  const HARVEST_PATTERNS = [
+    { id:'herb',     regex:/you begin to harvest the herb patch/i },
+    { id:'bush',     regex:/you begin to harvest the bush patch/i },
+    { id:'flower',   regex:/you begin to harvest the flower patch/i },
+    { id:'mushroom', regex:/you begin to harvest the farming patch/i },
+    { id:'tree',     regex:/you begin to harvest the tree patch/i },
+    { id:'fruit',    regex:/you begin to harvest the fruit tree patch/i },
   ];
 
   let PATCHES    = loadPatches();
@@ -206,9 +243,13 @@
   let timers     = loadTimers();
   let running    = loadRunning();
   let activeTab  = 'run';
-  let overlayEnabled = localStorage.getItem('rs3_overlay_on') === 'true';
-  let overlayX       = parseInt(localStorage.getItem('rs3_overlay_x') || '10');
-  let overlayY       = parseInt(localStorage.getItem('rs3_overlay_y') || '30');
+  let overlayEnabled  = localStorage.getItem('rs3_overlay_on') === 'true';
+  let overlayX        = parseInt(localStorage.getItem('rs3_overlay_x') || '10');
+  let overlayY        = parseInt(localStorage.getItem('rs3_overlay_y') || '30');
+  let autoDetect      = localStorage.getItem('rs3_autodetect') === 'true';
+  let plantCounts     = {}; // { patchId: count } — how many planting messages seen this run
+  let chatInterval    = null;
+  let lastChatLines   = [];
 
   if (typeof alt1 === 'undefined') document.getElementById('alt1-warning').style.display = 'block';
   if (window.alt1) alt1.identifyAppUrl("https://werewolfchef94.github.io/Farming-timers/appconfig.json");
@@ -279,7 +320,11 @@
     }
     const cancelBtn=(running&&active&&timer)?`<button class="btn-cancel-timer" onclick="cancelTimer('${pt.id}')" title="Cancel">✕</button>`:'';
     const toggleClick=!running?`onclick="togglePatch('${pt.id}')"` :'';
-    return `<div class="patch-row ${rowClass.trim()}" id="row-${pt.id}"><div class="patch-toggle" ${toggleClick} style="${!running?'cursor:pointer':''}">${active?'✓':''}</div><div class="patch-icon">${pt.icon}</div><div class="patch-meta"><div class="patch-type-name">${esc(pt.name)}</div><div class="patch-sub" id="dur-${pt.id}">${durHint}</div></div><div class="patch-right" id="right-${pt.id}">${rightHtml}</div>${cancelBtn}</div>`;
+    // Show planting counter badge when auto-detect is on and not yet running
+    const counterBadge = autoDetect && !timers[pt.id]
+      ? `<span id="autoctr-${pt.id}" style="font-size:10px;color:var(--text-dim);flex-shrink:0;margin-left:4px">${(plantCounts[pt.id]||0)} / ${pt.patchCount||1}</span>`
+      : '';
+    return `<div class="patch-row ${rowClass.trim()}" id="row-${pt.id}"><div class="patch-toggle" ${toggleClick} style="${!running?'cursor:pointer':''}">${active?'✓':''}</div><div class="patch-icon">${pt.icon}</div><div class="patch-meta"><div class="patch-type-name">${esc(pt.name)}</div><div class="patch-sub" id="dur-${pt.id}">${durHint}</div></div><div class="patch-right" id="right-${pt.id}">${rightHtml}</div>${counterBadge}${cancelBtn}</div>`;
   }
 
   function togglePatch(id) {
@@ -294,7 +339,7 @@
     if (!active.length) return;
     const now=Date.now();
     active.forEach(pt=>{ const idx=Math.min(patchState[pt.id].cropIndex,pt.crops.length-1); const crop=pt.crops[idx]; timers[pt.id]={cropName:crop.name,durationMs:crop.duration*60*1000,plantedAt:now}; });
-    running=true; notified=new Set(); saveTimers(); saveRunning(); buildPanel();
+    running=true; notified=new Set(); plantCounts={}; saveTimers(); saveRunning(); buildPanel();
     showFlash('🌱 Run started — '+active.length+' timer'+(active.length>1?'s':'')+' running!');
   }
 
@@ -324,8 +369,22 @@
   }
 
   function buildSetup() {
-    const panel=document.getElementById('setup-panel');
-    panel.innerHTML=PATCHES.map(pt=>`<div class="setup-section"><div class="setup-section-header"><div class="setup-section-title">${pt.icon} ${esc(pt.name)}</div><span class="setup-hint">${pt.crops.length} crop${pt.crops.length!==1?'s':''}</span></div><div class="setup-crops" id="crops-${pt.id}">${pt.crops.map((c,i)=>cropRowHtml(pt.id,i,c)).join('')}</div><button class="btn-add-crop" onclick="addCrop('${pt.id}')">+ Add crop</button></div>`).join('');
+    const panel = document.getElementById('setup-panel');
+    panel.innerHTML = PATCHES.map(pt=>`<div class="setup-section"><div class="setup-section-header"><div class="setup-section-title">${pt.icon} ${esc(pt.name)}</div><span class="setup-hint">${pt.crops.length} crop${pt.crops.length!==1?'s':''}</span></div><div class="setup-crops" id="crops-${pt.id}">${pt.crops.map((c,i)=>cropRowHtml(pt.id,i,c)).join('')}</div><button class="btn-add-crop" onclick="addCrop('${pt.id}')">+ Add crop</button></div>`).join('');
+
+    // Build patch count inputs for auto-detect
+    const ctr = document.getElementById('autodetect-counts');
+    if (ctr) {
+      ctr.innerHTML = PATCHES.map(pt => `
+        <div class="crop-row">
+          <span style="font-size:14px">${pt.icon}</span>
+          <span style="flex:1;font-family:'Cinzel',serif;font-size:11px;color:var(--gold)">${esc(pt.name)}</span>
+          <label class="crop-row-label">Patches</label>
+          <input type="number" value="${pt.patchCount||1}" min="1" max="50"
+            style="width:52px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Crimson Pro',serif;font-size:12px;padding:3px 6px;outline:none;"
+            oninput="updatePatchCount('${pt.id}',this.value)">
+        </div>`).join('');
+    }
   }
 
   function cropRowHtml(ptId, idx, crop) {
@@ -334,10 +393,11 @@
 
   function updateCropName(ptId,idx,val){ const pt=PATCHES.find(p=>p.id===ptId); if(!pt)return; pt.crops[idx].name=val; savePatches(); }
   function updateCropDuration(ptId,idx,val){ const pt=PATCHES.find(p=>p.id===ptId); if(!pt)return; const dur=parseInt(val); if(!isNaN(dur)&&dur>0){pt.crops[idx].duration=dur;savePatches();} }
+  function updatePatchCount(ptId,val){ const pt=PATCHES.find(p=>p.id===ptId); if(!pt)return; const n=parseInt(val); if(!isNaN(n)&&n>0){pt.patchCount=n;savePatches();} }
   function addCrop(ptId){ const pt=PATCHES.find(p=>p.id===ptId); if(!pt)return; pt.crops.push({name:'New Crop',duration:80}); savePatches(); buildSetup(); }
   function deleteCrop(ptId,idx){ const pt=PATCHES.find(p=>p.id===ptId); if(!pt||pt.crops.length<=1)return; pt.crops.splice(idx,1); if(patchState[ptId]&&patchState[ptId].cropIndex>=pt.crops.length) patchState[ptId].cropIndex=0; savePatches(); savePatchState(); buildSetup(); }
 
-  let notified = new Set(); // track which patches we've already notified
+  let notified = new Set();
 
   function sendNotification(pt) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -347,6 +407,114 @@
       icon: 'https://werewolfchef94.github.io/Farming-timers/icon.png',
       silent: false
     });
+  }
+
+  // ── Auto-detect chat reading ──────────────────────────────
+  function getPatchCount(id) {
+    const pt = PATCHES.find(p => p.id === id);
+    return pt ? (pt.patchCount || 1) : 1;
+  }
+
+  function onChatLine(line) {
+    if (!autoDetect) return;
+    const clean = line.replace(/\[.*?\]/g, '').trim(); // strip timestamps
+
+    // Check planting patterns
+    for (const pat of CHAT_PATTERNS) {
+      if (pat.regex.test(clean)) {
+        const pt = PATCHES.find(p => p.id === pat.id);
+        if (!pt) break;
+        plantCounts[pat.id] = (plantCounts[pat.id] || 0) + 1;
+        const target = getPatchCount(pat.id);
+        updateAutoCounter(pat.id, plantCounts[pat.id], target);
+
+        if (plantCounts[pat.id] >= target) {
+          // Auto-start this timer if not already running
+          if (!timers[pat.id]) {
+            const state = patchState[pat.id] || { cropIndex: 0 };
+            const cropIdx = Math.min(state.cropIndex, pt.crops.length - 1);
+            const crop = pt.crops[cropIdx];
+            timers[pat.id] = { cropName: crop.name, durationMs: crop.duration * 60 * 1000, plantedAt: Date.now() };
+            patchState[pat.id].active = true;
+            running = true;
+            saveTimers(); saveRunning(); savePatchState();
+            buildPanel();
+            showFlash('🌱 ' + pt.name + ' timer started!');
+          }
+        }
+        break;
+      }
+    }
+
+    // Check harvest patterns — only reset if timer is complete
+    for (const pat of HARVEST_PATTERNS) {
+      if (pat.regex.test(clean)) {
+        const timer = timers[pat.id];
+        if (timer) {
+          const remaining = timer.durationMs - (Date.now() - timer.plantedAt);
+          if (remaining <= 0) {
+            // Timer complete — reset this patch for next run
+            delete timers[pat.id];
+            plantCounts[pat.id] = 0;
+            notified.delete(pat.id);
+            if (Object.keys(timers).length === 0) { running = false; saveRunning(); }
+            saveTimers(); buildPanel();
+            updateAutoCounter(pat.id, 0, getPatchCount(pat.id));
+            showFlash('↺ ' + PATCHES.find(p=>p.id===pat.id)?.name + ' reset');
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  function updateAutoCounter(id, count, target) {
+    const el = document.getElementById('autoctr-' + id);
+    if (el) el.textContent = count + ' / ' + target;
+  }
+
+  function startChatReading() {
+    if (chatInterval) return;
+    if (typeof alt1 === 'undefined' || !alt1.permissionPixel) return;
+    // Poll chatbox every 2 seconds using Alt1 pixel API
+    chatInterval = setInterval(readChat, 2000);
+  }
+
+  function stopChatReading() {
+    if (chatInterval) { clearInterval(chatInterval); chatInterval = null; }
+  }
+
+  function readChat() {
+    if (!autoDetect) return;
+    if (typeof alt1 === 'undefined' || !alt1.permissionPixel || !alt1.rsLinked) return;
+    try {
+      // Read a region of the screen where the chatbox typically is
+      // Chatbox is at the bottom of the RS window
+      const x = alt1.rsX, y = alt1.rsY, w = alt1.rsWidth, h = alt1.rsHeight;
+      const chatH = Math.round(h * 0.18); // bottom ~18% of window is chatbox
+      const chatY = y + h - chatH;
+      const id = alt1.bindRegion(x, chatY, w, chatH);
+      // Read lines of text from chat area
+      // Try reading from several y positions (each chat line ~14px tall)
+      const lines = [];
+      for (let row = 10; row < chatH - 10; row += 14) {
+        const str = alt1.bindReadString(id, 'chat', 10, row);
+        if (str && str.length > 5) lines.push(str);
+      }
+      // Only process new lines we haven't seen before
+      lines.forEach(line => {
+        if (!lastChatLines.includes(line)) onChatLine(line);
+      });
+      lastChatLines = lines;
+    } catch(e) { /* silently ignore read errors */ }
+  }
+
+  function onAutoDetectToggle(checked) {
+    autoDetect = checked;
+    localStorage.setItem('rs3_autodetect', String(checked));
+    document.getElementById('autodetect-controls').style.display = checked ? '' : 'none';
+    if (checked) startChatReading();
+    else stopChatReading();
   }
   function a1color(r,g,b,a){ a=a===undefined?255:a; return((a&0xff)<<24)|((b&0xff)<<16)|((g&0xff)<<8)|(r&0xff); }
   const COL_WHITE=a1color(255,255,255), COL_GREEN=a1color(90,200,100), COL_ORANGE=a1color(220,140,60), COL_GOLD=a1color(210,175,80), COL_BGDARK=a1color(10,20,10,200), COL_BGREEN=a1color(58,122,61,220), COL_BORANGE=a1color(160,96,48,220);
@@ -418,6 +586,9 @@
   document.getElementById('overlay-controls').style.display=overlayEnabled?'':'none';
   document.getElementById('overlay-x').value=overlayX;
   document.getElementById('overlay-y').value=overlayY;
+  document.getElementById('autodetect-enabled').checked=autoDetect;
+  document.getElementById('autodetect-controls').style.display=autoDetect?'':'none';
+  if (autoDetect) startChatReading();
   </script>
 </body>
 </html>
