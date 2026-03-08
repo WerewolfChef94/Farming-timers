@@ -184,6 +184,84 @@
 
     footer { margin-top:14px; text-align:center; font-size:10px; color:#2a3d2b; }
 
+    /* ── Compact mode ─────────────────────────────────────── */
+    body.compact {
+      padding: 0;
+      min-height: unset;
+      background-image: none;
+      background: var(--bg);
+    }
+    body.compact header,
+    body.compact .tab-bar,
+    body.compact #alt1-warning,
+    body.compact footer,
+    body.compact .btn-row { display: none !important; }
+
+    /* Compact header bar — click to expand */
+    #compact-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 10px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      background: var(--surface);
+    }
+    #compact-bar:hover { background: #0f1e10; }
+    body.compact #compact-bar { display: flex; }
+
+    .compact-title {
+      font-family: 'Cinzel', serif;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: var(--gold);
+    }
+    .compact-hint {
+      font-size: 9px;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    /* Compact patch rows — slimmer */
+    body.compact .patch-row {
+      padding: 5px 8px;
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      border-top: none;
+    }
+    body.compact .patch-row:last-child { border-bottom: none; }
+    body.compact .patch-toggle { display: none; }
+    body.compact .patch-meta { flex: 0 0 54px; }
+    body.compact .patch-type-name { font-size: 10px; }
+    body.compact .patch-sub { display: none; }
+    body.compact .patch-icon { font-size: 13px; }
+    body.compact #patches-panel { gap: 0; margin-bottom: 0; }
+    body.compact .timer-crop-label { font-size: 10px; }
+    body.compact .timer-countdown { font-size: 11px; }
+    body.compact .bar-track { height: 3px; }
+
+    /* Compact action buttons strip at bottom */
+    #compact-actions {
+      display: none;
+      gap: 4px;
+      padding: 5px 8px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    body.compact #compact-actions { display: flex; }
+    .compact-btn {
+      flex: 1; padding: 4px; border-radius: 4px;
+      font-family: 'Cinzel', serif; font-size: 9px;
+      letter-spacing: 1px; cursor: pointer; border: 1px solid;
+      transition: all 0.2s;
+    }
+    .compact-btn.cancel { background:transparent; border-color:var(--border); color:var(--text-dim); }
+    .compact-btn.cancel:hover { border-color:var(--warn); color:var(--warn); }
+    .compact-btn.reset  { background:transparent; border-color:var(--border); color:var(--text-dim); }
+    .compact-btn.reset:hover  { border-color:var(--danger); color:var(--danger); }
+
     /* ── Overlay settings ─────────────────────────────────── */
     .toggle-wrap { display:flex; align-items:center; gap:6px; cursor:pointer; }
     .toggle-wrap input[type="checkbox"] { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
@@ -193,6 +271,12 @@
   </style>
 </head>
 <body>
+  <!-- Compact mode header — visible only when collapsed -->
+  <div id="compact-bar" onclick="expandApp()" title="Click to expand">
+    <div class="compact-title">🌱 FARMING TIMERS</div>
+    <div class="compact-hint" id="compact-hint">tap to expand</div>
+  </div>
+
   <header>
     <h1>🌱 FARMING TIMERS</h1>
     <p>RuneScape 3 — Run Tracker</p>
@@ -213,6 +297,12 @@
       <button class="btn" id="btn-cancel-run" onclick="cancelRun()">✕ CANCEL RUN</button>
       <button class="btn" id="btn-reset"      onclick="resetRun()">↺ NEW RUN</button>
     </div>
+  </div>
+
+  <!-- Compact action strip (visible in compact mode only) -->
+  <div id="compact-actions">
+    <button class="compact-btn cancel" onclick="cancelRun()">✕ CANCEL</button>
+    <button class="compact-btn reset"  onclick="resetRun()">↺ NEW RUN</button>
   </div>
 
   <!-- SETUP TAB -->
@@ -438,6 +528,34 @@
   }
 
   // ═══════════════════════════════════════════════════════
+  //  COMPACT MODE
+  // ═══════════════════════════════════════════════════════
+  function collapseApp() {
+    document.body.classList.add('compact');
+    // Switch to run tab so timers are visible
+    switchTab('run');
+    updateCompactHint();
+  }
+
+  function expandApp() {
+    document.body.classList.remove('compact');
+  }
+
+  function updateCompactHint() {
+    const activeTimers = PATCHES.filter(pt => timers[pt.id]);
+    const readyCount   = activeTimers.filter(pt => {
+      const t = timers[pt.id];
+      return (t.durationMs - (Date.now() - t.plantedAt)) <= 0;
+    }).length;
+    const hint = document.getElementById('compact-hint');
+    if (hint) {
+      hint.textContent = readyCount > 0
+        ? readyCount + ' ready! — tap to expand'
+        : activeTimers.length + ' growing — tap to expand';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
   //  START / CANCEL / RESET
   // ═══════════════════════════════════════════════════════
   function startRun() {
@@ -452,13 +570,16 @@
     running = true;
     saveTimers(); saveRunning(); buildPanel();
     showFlash('🌱 Run started — ' + active.length + ' timer' + (active.length>1?'s':'') + ' running!');
+    setTimeout(() => collapseApp(), 1200); // collapse after flash shows
   }
 
-  // Cancel whole run — goes back to setup with selections preserved
+  // Cancel whole run — expands back to setup
   function cancelRun() {
     running = false;
     timers  = {};
-    saveTimers(); saveRunning(); buildPanel();
+    saveTimers(); saveRunning();
+    expandApp();
+    buildPanel();
     showFlash('↩ Run cancelled');
   }
 
@@ -466,20 +587,22 @@
   function cancelTimer(id) {
     delete timers[id];
     patchState[id].active = false;
-    // If no timers left, end run
     if (Object.keys(timers).length === 0) {
       running = false;
       saveRunning();
+      expandApp();
     }
     saveTimers(); savePatchState(); buildPanel();
   }
 
-  // Reset — clears everything, fresh slate
+  // Reset — clears everything, expands to setup
   function resetRun() {
     running = false;
     timers  = {};
     PATCHES.forEach(pt => { if (patchState[pt.id]) patchState[pt.id].active = false; });
-    saveTimers(); saveRunning(); savePatchState(); buildPanel();
+    saveTimers(); saveRunning(); savePatchState();
+    expandApp();
+    buildPanel();
   }
 
   function updateButtons() {
@@ -683,6 +806,7 @@
       if (row) { row.className='patch-row '+(tState==='ready'?'run-ready':tState==='warning'?'run-warning':'running'); }
     });
     drawOverlay();
+    if (document.body.classList.contains('compact')) updateCompactHint();
   }
 
   // ═══════════════════════════════════════════════════════
@@ -724,6 +848,9 @@
   buildPanel();
   setInterval(tick, 1000);
   setInterval(saveTimers, 30000);
+
+  // If a run is already active on load, start in compact mode
+  if (running) collapseApp();
 
   // Restore overlay UI state
   document.getElementById('overlay-enabled').checked = overlayEnabled;
