@@ -11,8 +11,6 @@
   <meta name="alt1:perm"        content="pixel gamestate overlay" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:wght@300;400;600&display=swap" rel="stylesheet">
-  <script src="https://runeapps.org/imagelibs/alt1lib.js"></script>
-  <script src="https://runeapps.org/imagelibs/chatbox.js"></script>
   <style>
     :root {
       --bg:         #0d110e;
@@ -262,7 +260,22 @@
     Notification.requestPermission();
   }
 
-  function loadPatches() { try { const s=JSON.parse(localStorage.getItem('rs3_patches4')); return s&&s.length?s:JSON.parse(JSON.stringify(DEFAULT_PATCHES)); } catch { return JSON.parse(JSON.stringify(DEFAULT_PATCHES)); } }
+  function loadPatches() {
+    try {
+      const s = JSON.parse(localStorage.getItem('rs3_patches4'));
+      if (s && s.length) {
+        // Merge patchCount from DEFAULT_PATCHES in case it's missing (upgrading from older save)
+        s.forEach(pt => {
+          if (pt.patchCount == null) {
+            const def = DEFAULT_PATCHES.find(d => d.id === pt.id);
+            if (def) pt.patchCount = def.patchCount;
+          }
+        });
+        return s;
+      }
+    } catch(e) {}
+    return JSON.parse(JSON.stringify(DEFAULT_PATCHES));
+  }
   function savePatches() { localStorage.setItem('rs3_patches4', JSON.stringify(PATCHES)); }
   function loadPatchState() { try { const s=JSON.parse(localStorage.getItem('rs3_ps4')||'{}'); PATCHES.forEach(p=>{ if(!s[p.id]) s[p.id]={active:false,cropIndex:0}; }); return s; } catch { const s={}; PATCHES.forEach(p=>s[p.id]={active:false,cropIndex:0}); return s; } }
   function savePatchState() { localStorage.setItem('rs3_ps4', JSON.stringify(patchState)); }
@@ -476,37 +489,21 @@
     if (el) el.textContent = count + ' / ' + target;
   }
 
-  // ── ChatBoxReader setup ───────────────────────────────────
-  // Uses the official runeapps chatbox.js library loaded via <script> tag.
-  // ChatBoxReader.find() locates the chatbox by scanning the screen.
-  // ChatBoxReader.read() returns an array of line objects with a .text property.
-  let chatReader = null;
-  let chatReaderReady = false;
+  // ── Chatbox Reader (self-contained) ──────────────────────
+  // Uses Alt1's native bindRegion + bindReadString API.
+  // alt1.bindReadString(handle, fontName, x, y) reads a single line of text
+  // at position (x,y) within a bound region, using the named RS font.
+  // The 'chat' font covers all standard RS3 chatbox text.
+  // We capture the bottom portion of the RS window and scan rows.
 
-  function initChatReader() {
-    // ChatBoxReader is defined by chatbox.js from runeapps.org
-    if (typeof ChatBoxReader === 'undefined') {
-      updateChatStatus('⚠ chatbox.js not loaded');
-      return false;
-    }
-    if (!chatReader) {
-      chatReader = new ChatBoxReader();
-      // Read white text — game messages are white in RS3
-      // a1lib.colors is defined by alt1lib.js
-      if (typeof a1lib !== 'undefined' && a1lib.colors) {
-        chatReader.readargs = { colors: [a1lib.colors.white, a1lib.colors.black] };
-      }
-    }
-    return true;
-  }
+  let chatReaderReady = false;
 
   function startChatReading() {
     if (chatInterval) return;
     if (typeof alt1 === 'undefined' || !alt1.permissionPixel) {
-      updateChatStatus('⚠ Pixel permission needed');
+      updateChatStatus('⚠ Pixel permission needed in Alt1 Settings');
       return;
     }
-    if (!initChatReader()) return;
     chatInterval = setInterval(readChat, 1500);
     updateChatStatus('👁 Watching chat...');
   }
@@ -525,31 +522,51 @@
   function readChat() {
     if (!autoDetect) return;
     if (typeof alt1 === 'undefined' || !alt1.permissionPixel || !alt1.rsLinked) return;
-    if (!chatReader) { initChatReader(); return; }
     try {
-      // find() locates the chatbox on screen — must be called before read()
-      // Returns null if chatbox not found (e.g. minimised or off-screen)
-      const pos = chatReader.find();
-      if (!pos) {
-        if (chatReaderReady) updateChatStatus('⚠ Chatbox not found — make sure header bar is visible');
-        chatReaderReady = false;
+      // The RS3 chatbox occupies the bottom-left of the window.
+      // Typical height is ~165px for a default-size chatbox.
+      // We read from rsY+rsHeight-170 downward, left half of window.
+      const rsX = alt1.rsX, rsY = alt1.rsY;
+      const rsW = alt1.rsWidth, rsH = alt1.rsHeight;
+
+      // Capture the chatbox area — bottom-left region
+      const chatAreaW = Math.round(rsW * 0.55); // left ~55% of screen
+      const chatAreaH = 175;                     // fixed ~175px chatbox height
+      const chatAreaX = rsX;
+      const chatAreaY = rsY + rsH - chatAreaH;
+
+      const handle = alt1.bindRegion(chatAreaX, chatAreaY, chatAreaW, chatAreaH);
+      if (!handle && handle !== 0) {
+        updateChatStatus('⚠ Could not capture screen region');
         return;
       }
-      if (!chatReaderReady) {
+
+      // Each chat line is ~14px tall in RS3 default font size.
+      // Tab bar at bottom ~20px, so scan from top down to ~155px
+      const lines = [];
+      for (let y = 8; y < chatAreaH - 22; y += 14) {
+        // Try reading from x=8 (left edge inside chatbox border)
+        const str = alt1.bindReadString(handle, 'chat', 8, y);
+        if (str && typeof str === 'string' && str.trim().length > 4) {
+          lines.push(str.trim());
+        }
+      }
+
+      if (!chatReaderReady && lines.length > 0) {
         chatReaderReady = true;
         updateChatStatus('👁 Watching chat...');
+      } else if (chatReaderReady && lines.length === 0) {
+        updateChatStatus('⚠ No text read — check chatbox is visible & not transparent');
       }
-      // read() returns array of { text, color } objects, one per visible line
-      const lines = chatReader.read();
-      if (!lines || !lines.length) return;
-      const texts = lines.map(l => (l.text || '').trim()).filter(t => t.length > 5);
+
       // Only process lines we haven't seen in the last scan
-      texts.forEach(line => {
+      lines.forEach(line => {
         if (!lastChatLines.includes(line)) onChatLine(line);
       });
-      lastChatLines = texts;
+      lastChatLines = lines;
+
     } catch(e) {
-      updateChatStatus('⚠ Read error: ' + e.message);
+      updateChatStatus('⚠ ' + (e.message || e));
     }
   }
 
