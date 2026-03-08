@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RS3 Farming Timers</title>
+  <meta name="alt1:name"        content="RS3 Farming Timers" />
+  <meta name="alt1:author"      content="You" />
+  <meta name="alt1:description" content="Track your RS3 farming patch timers by category" />
+  <meta name="alt1:version"     content="4.0.0" />
+  <meta name="alt1:perm"        content="pixel gamestate overlay" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:         #0d110e;
+      --surface:    #131a14;
+      --border:     #2a3d2b;
+      --accent:     #5aad5e;
+      --accent-dim: #3a7a3d;
+      --gold:       #c9a84c;
+      --gold-dim:   #7a6230;
+      --text:       #d4e8d0;
+      --text-dim:   #7a9b7c;
+      --warn:       #d4874a;
+      --danger:     #c95252;
+      --bar-bg:     #1a251b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; padding: 12px;
+      background-image:
+        radial-gradient(ellipse at top left, #1a2e1b 0%, transparent 60%),
+        radial-gradient(ellipse at bottom right, #0f1e10 0%, transparent 60%);
+    }
+
+    /* ── Header ───────────────────────────────────────────── */
+    header { text-align: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    header h1 { font-family:'Cinzel',serif; font-size:15px; font-weight:600; letter-spacing:2px; color:var(--gold); text-shadow:0 0 12px #c9a84c55; }
+    header p { font-size:11px; color:var(--text-dim); margin-top:2px; }
+
+    #alt1-warning { display:none; background:#2a1a0a; border:1px solid var(--warn); border-radius:4px; padding:6px 10px; font-size:11px; color:var(--warn); margin-bottom:8px; text-align:center; }
+
+    /* ── Tabs ─────────────────────────────────────────────── */
+    .tab-bar { display:flex; gap:4px; margin-bottom:12px; }
+    .tab-btn {
+      flex:1; font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px;
+      padding:6px 4px; border-radius:5px; border:1px solid var(--border);
+      background:var(--surface); color:var(--text-dim); cursor:pointer; transition:all 0.2s;
+    }
+    .tab-btn.active { background:#0f1e10; border-color:var(--accent-dim); color:var(--gold); }
+    .tab-btn:hover:not(.active) { border-color:var(--border); color:var(--text); }
+
+    .tab-content { display:none; }
+    .tab-content.visible { display:block; }
+
+    /* ── Patch rows (Timer tab) ───────────────────────────── */
+    #patches-panel { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+
+    .patch-row {
+      display:flex; align-items:center; gap:8px;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:6px; padding:8px 10px;
+      transition:border-color 0.25s, box-shadow 0.25s, opacity 0.2s;
+      position:relative; overflow:hidden;
+    }
+    .patch-row::before { content:''; position:absolute; left:0;top:0;bottom:0;width:3px; border-radius:6px 0 0 6px; background:var(--border); transition:background 0.3s; }
+
+    .patch-row.inactive          { opacity:0.42; }
+    .patch-row.active            { border-color:var(--accent-dim); background:#0f1e10; }
+    .patch-row.active::before    { background:var(--accent-dim); }
+    .patch-row.running           { border-color:var(--accent-dim); background:#0f1e10; }
+    .patch-row.running::before   { background:var(--accent-dim); }
+    .patch-row.run-warning       { border-color:var(--warn); }
+    .patch-row.run-warning::before { background:var(--warn); }
+    .patch-row.run-ready         { border-color:var(--accent); box-shadow:0 0 10px #5aad5e33; }
+    .patch-row.run-ready::before { background:var(--accent); animation:pulseStripe 1.5s infinite; }
+    .patch-row.run-idle          { opacity:0.35; }
+    @keyframes pulseStripe { 0%,100%{opacity:1}50%{opacity:0.5} }
+
+    .patch-toggle {
+      width:18px;height:18px; border:1px solid var(--border); border-radius:4px;
+      background:var(--bg); display:flex; align-items:center; justify-content:center;
+      font-size:11px; flex-shrink:0; transition:all 0.2s; cursor:pointer; user-select:none;
+    }
+    .patch-row.active .patch-toggle,
+    .patch-row.running .patch-toggle,
+    .patch-row.run-warning .patch-toggle,
+    .patch-row.run-ready .patch-toggle { background:var(--accent-dim); border-color:var(--accent); color:#fff; }
+
+    .patch-icon { font-size:16px; flex-shrink:0; }
+    .patch-meta { flex:0 0 66px; }
+    .patch-type-name { font-family:'Cinzel',serif; font-size:11px; color:var(--gold); white-space:nowrap; }
+    .patch-sub { font-size:10px; color:var(--text-dim); margin-top:1px; }
+    .patch-right { flex:1; min-width:0; }
+    .patch-right select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:4px; color:var(--text); font-family:'Crimson Pro',serif; font-size:12px; padding:4px 6px; outline:none; transition:border-color 0.2s; }
+    .patch-right select:focus { border-color:var(--accent-dim); }
+    .patch-right select option { background:#131a14; }
+    .patch-right select:disabled { opacity:0.3; pointer-events:none; }
+
+    /* cancel per-timer button in running mode */
+    .btn-cancel-timer {
+      background:none; border:none; color:#3a4e3b; cursor:pointer;
+      font-size:13px; line-height:1; padding:0 0 0 6px;
+      flex-shrink:0; transition:color 0.2s;
+    }
+    .btn-cancel-timer:hover { color:var(--danger); }
+
+    .timer-block { display:flex; flex-direction:column; gap:4px; }
+    .timer-top-row { display:flex; justify-content:space-between; align-items:baseline; }
+    .timer-crop-label { font-size:11px; color:var(--text-dim); }
+    .timer-countdown { font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--text); }
+    .timer-countdown.warning { color:var(--warn); }
+    .timer-countdown.ready   { color:var(--accent); }
+    .bar-track { height:5px; background:var(--bar-bg); border-radius:99px; overflow:hidden; }
+    .bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,var(--accent-dim),var(--accent)); transition:width 1s linear,background 1s; }
+    .bar-fill.warning { background:linear-gradient(90deg,#a06030,var(--warn)); }
+    .bar-fill.ready   { background:linear-gradient(90deg,#3a7a3d,var(--accent)); animation:pulseGreen 1.5s infinite; }
+    @keyframes pulseGreen { 0%,100%{opacity:1}50%{opacity:0.55} }
+
+    /* ── Buttons ──────────────────────────────────────────── */
+    .btn-row { display:flex; gap:6px; margin-bottom:4px; }
+    .btn {
+      flex:1; border-radius:6px; font-family:'Cinzel',serif; font-size:11px;
+      letter-spacing:1.5px; padding:9px 6px; cursor:pointer; transition:all 0.2s; border:1px solid;
+    }
+    #btn-start { background:linear-gradient(135deg,var(--accent-dim),#2a5a2d); border-color:var(--accent); color:#fff; box-shadow:0 0 10px #5aad5e22; }
+    #btn-start:hover:not(:disabled) { background:linear-gradient(135deg,var(--accent),#3a7a3d); box-shadow:0 0 16px #5aad5e44; }
+    #btn-start:disabled { opacity:0.32; cursor:not-allowed; box-shadow:none; }
+    #btn-cancel-run { background:transparent; border-color:var(--border); color:var(--text-dim); display:none; }
+    #btn-cancel-run:hover { border-color:var(--warn); color:var(--warn); }
+    #btn-reset { background:transparent; border-color:var(--border); color:var(--text-dim); display:none; }
+    #btn-reset:hover { border-color:var(--danger); color:var(--danger); }
+
+    /* ── Setup tab ────────────────────────────────────────── */
+    .setup-section { margin-bottom:14px; }
+    .setup-section-header {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border);
+    }
+    .setup-section-title { font-family:'Cinzel',serif; font-size:12px; color:var(--gold); display:flex; align-items:center; gap:6px; }
+    .setup-crops { display:flex; flex-direction:column; gap:5px; }
+
+    .crop-row {
+      display:flex; align-items:center; gap:6px;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:5px; padding:6px 8px;
+    }
+    .crop-row input[type="text"] {
+      flex:1; background:var(--bg); border:1px solid var(--border);
+      border-radius:4px; color:var(--text); font-family:'Crimson Pro',serif;
+      font-size:12px; padding:3px 6px; outline:none; transition:border-color 0.2s; min-width:0;
+    }
+    .crop-row input[type="text"]:focus { border-color:var(--accent-dim); }
+    .crop-row input[type="number"] {
+      width:58px; background:var(--bg); border:1px solid var(--border);
+      border-radius:4px; color:var(--text); font-family:'Crimson Pro',serif;
+      font-size:12px; padding:3px 6px; outline:none; transition:border-color 0.2s;
+      -moz-appearance:textfield;
+    }
+    .crop-row input[type="number"]::-webkit-outer-spin-button,
+    .crop-row input[type="number"]::-webkit-inner-spin-button { -webkit-appearance:none; }
+    .crop-row input[type="number"]:focus { border-color:var(--accent-dim); }
+    .crop-row-label { font-size:10px; color:var(--text-dim); white-space:nowrap; }
+
+    .btn-del-crop { background:none; border:none; color:#3a4e3b; cursor:pointer; font-size:14px; padding:0 2px; transition:color 0.2s; flex-shrink:0; }
+    .btn-del-crop:hover { color:var(--danger); }
+
+    .btn-add-crop {
+      width:100%; margin-top:5px; padding:6px; background:transparent;
+      border:1px dashed var(--border); border-radius:5px; color:var(--text-dim);
+      font-family:'Crimson Pro',serif; font-size:12px; cursor:pointer; transition:all 0.2s;
+    }
+    .btn-add-crop:hover { border-color:var(--accent-dim); color:var(--accent); }
+
+    .setup-hint { font-size:10px; color:var(--text-dim); font-style:italic; }
+
+    /* ── Flash ────────────────────────────────────────────── */
+    #plant-flash { display:none; position:fixed; top:50%;left:50%; transform:translate(-50%,-50%); background:#0f2e12ee; border:2px solid var(--accent); border-radius:8px; padding:11px 20px; font-family:'Cinzel',serif; font-size:12px; color:var(--accent); letter-spacing:1px; text-align:center; z-index:999; pointer-events:none; }
+    #plant-flash.show { display:block; animation:flashFade 1.4s ease forwards; }
+    @keyframes flashFade { 0%{opacity:0;transform:translate(-50%,-54%)}12%{opacity:1;transform:translate(-50%,-50%)}75%{opacity:1}100%{opacity:0} }
+
+    footer { margin-top:14px; text-align:center; font-size:10px; color:#2a3d2b; }
+
+    /* ── Overlay settings ─────────────────────────────────── */
+    .toggle-wrap { display:flex; align-items:center; gap:6px; cursor:pointer; }
+    .toggle-wrap input[type="checkbox"] { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
+    .toggle-label { font-size:11px; color:var(--text-dim); }
+    .overlay-hint { font-size:10px; color:var(--text-dim); font-style:italic; margin-bottom:8px; line-height:1.5; }
+    .overlay-pos-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌱 FARMING TIMERS</h1>
+    <p>RuneScape 3 — Run Tracker</p>
+  </header>
+  <div id="alt1-warning">⚠ Alt1 not detected — running in browser mode.</div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-run-btn"   onclick="switchTab('run')">▶ RUN</button>
+    <button class="tab-btn"        id="tab-setup-btn" onclick="switchTab('setup')">⚙ SETUP</button>
+  </div>
+
+  <!-- RUN TAB -->
+  <div class="tab-content visible" id="tab-run">
+    <div id="patches-panel"></div>
+    <div class="btn-row">
+      <button class="btn" id="btn-start"      onclick="startRun()">▶ START RUN</button>
+      <button class="btn" id="btn-cancel-run" onclick="cancelRun()">✕ CANCEL RUN</button>
+      <button class="btn" id="btn-reset"      onclick="resetRun()">↺ NEW RUN</button>
+    </div>
+  </div>
+
+  <!-- SETUP TAB -->
+  <div class="tab-content" id="tab-setup">
+    <!-- Overlay settings at top of setup tab -->
+    <div class="setup-section" id="overlay-settings-section">
+      <div class="setup-section-header">
+        <div class="setup-section-title">🖥 Screen Overlay</div>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="overlay-enabled" onchange="onOverlayToggle(this.checked)">
+          <span class="toggle-label">Enable</span>
+        </label>
+      </div>
+      <div id="overlay-controls" style="display:none">
+        <div class="overlay-hint">Timers are drawn directly on your RS screen.<br>Drag the numbers below to set position.</div>
+        <div class="overlay-pos-row">
+          <label class="crop-row-label">X position</label>
+          <input type="number" id="overlay-x" value="0" min="-9999" max="9999" style="width:70px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Crimson Pro',serif;font-size:12px;padding:3px 6px;outline:none;" oninput="saveOverlayPos()">
+          <label class="crop-row-label" style="margin-left:8px">Y position</label>
+          <input type="number" id="overlay-y" value="0" min="-9999" max="9999" style="width:70px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Crimson Pro',serif;font-size:12px;padding:3px 6px;outline:none;" oninput="saveOverlayPos()">
+          <button onclick="resetOverlayPos()" style="margin-left:6px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text-dim);font-family:'Crimson Pro',serif;font-size:11px;padding:3px 8px;cursor:pointer;">Reset</button>
+        </div>
+        <div class="overlay-hint" style="margin-top:4px">Tip: X=0, Y=0 anchors to the top-left of the RS window.<br>Use negative Y to position above the window (toolbar area).</div>
+      </div>
+    </div>
+    <div id="setup-panel"></div>
+  </div>
+
+  <div id="plant-flash"></div>
+  <footer>Alt1 Farming Tracker</footer>
+
+  <script>
+  // ═══════════════════════════════════════════════════════
+  //  DEFAULT PATCH DEFINITIONS (user can customise)
+  // ═══════════════════════════════════════════════════════
+  const DEFAULT_PATCHES = [
+    {
+      id:'herb', icon:'🌿', name:'Herb',
+      crops:[
+        {name:'Guam',duration:80},{name:'Marrentill',duration:80},{name:'Tarromin',duration:80},
+        {name:'Harralander',duration:80},{name:'Ranarr',duration:80},{name:'Toadflax',duration:80},
+        {name:'Irit',duration:80},{name:'Avantoe',duration:80},{name:'Kwuarm',duration:80},
+        {name:'Snapdragon',duration:80},{name:'Cadantine',duration:80},{name:'Lantadyme',duration:80},
+        {name:'Dwarf Weed',duration:80},{name:'Torstol',duration:80},{name:'Arbuck',duration:80}
+      ]
+    },
+    {
+      id:'mushroom', icon:'🍄', name:'Mushroom',
+      crops:[{name:'Bittercap Mushroom',duration:240}]
+    },
+    {
+      id:'tree', icon:'🌳', name:'Tree',
+      crops:[
+        {name:'Oak',duration:160},{name:'Willow',duration:280},{name:'Maple',duration:480},
+        {name:'Yew',duration:960},{name:'Magic',duration:1600}
+      ]
+    },
+    {
+      id:'fruit', icon:'🍎', name:'Fruit Tree',
+      crops:[
+        {name:'Apple',duration:960},{name:'Banana',duration:960},{name:'Orange',duration:960},
+        {name:'Curry',duration:960},{name:'Pineapple',duration:1120},{name:'Papaya',duration:1120},
+        {name:'Palm',duration:1440},{name:'Dragonfruit',duration:1440}
+      ]
+    },
+    {
+      id:'bush', icon:'🫐', name:'Bush',
+      crops:[
+        {name:'Redberry',duration:160},{name:'Cadavaberry',duration:200},{name:'Dwellberry',duration:240},
+        {name:'Jangerberry',duration:280},{name:'Whiteberry',duration:320},{name:'Poison Ivy',duration:400}
+      ]
+    }
+  ];
+
+  // ═══════════════════════════════════════════════════════
+  //  STATE
+  // ═══════════════════════════════════════════════════════
+  let PATCHES    = loadPatches();
+  let patchState = loadPatchState();
+  let timers     = loadTimers();
+  let running    = loadRunning();
+  let activeTab  = 'run';
+
+  // Overlay state
+  let overlayEnabled = localStorage.getItem('rs3_overlay_on') === 'true';
+  let overlayX       = parseInt(localStorage.getItem('rs3_overlay_x') || '10');
+  let overlayY       = parseInt(localStorage.getItem('rs3_overlay_y') || '30');
+
+  if (typeof alt1 === 'undefined')
+    document.getElementById('alt1-warning').style.display = 'block';
+
+  // ═══════════════════════════════════════════════════════
+  //  PERSISTENCE
+  // ═══════════════════════════════════════════════════════
+  function loadPatches() {
+    try {
+      const s = JSON.parse(localStorage.getItem('rs3_patches4'));
+      return s && s.length ? s : JSON.parse(JSON.stringify(DEFAULT_PATCHES));
+    } catch { return JSON.parse(JSON.stringify(DEFAULT_PATCHES)); }
+  }
+  function savePatches() { localStorage.setItem('rs3_patches4', JSON.stringify(PATCHES)); }
+
+  function loadPatchState() {
+    try {
+      const s = JSON.parse(localStorage.getItem('rs3_ps4') || '{}');
+      PATCHES.forEach(p => { if (!s[p.id]) s[p.id] = {active:false,cropIndex:0}; });
+      return s;
+    } catch {
+      const s = {}; PATCHES.forEach(p => s[p.id]={active:false,cropIndex:0}); return s;
+    }
+  }
+  function savePatchState() { localStorage.setItem('rs3_ps4', JSON.stringify(patchState)); }
+
+  function loadTimers() {
+    try { return JSON.parse(localStorage.getItem('rs3_tm4') || '{}'); } catch { return {}; }
+  }
+  function saveTimers() { localStorage.setItem('rs3_tm4', JSON.stringify(timers)); }
+
+  function loadRunning() { return localStorage.getItem('rs3_running4') === 'true'; }
+  function saveRunning() { localStorage.setItem('rs3_running4', String(running)); }
+
+  // ═══════════════════════════════════════════════════════
+  //  TABS
+  // ═══════════════════════════════════════════════════════
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('tab-run').classList.toggle('visible', tab === 'run');
+    document.getElementById('tab-setup').classList.toggle('visible', tab === 'setup');
+    document.getElementById('tab-run-btn').classList.toggle('active', tab === 'run');
+    document.getElementById('tab-setup-btn').classList.toggle('active', tab === 'setup');
+    if (tab === 'setup') buildSetup();
+    if (tab === 'run')   buildPanel();
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  RUN TAB — PATCH PANEL
+  // ═══════════════════════════════════════════════════════
+  function buildPanel() {
+    const panel = document.getElementById('patches-panel');
+    panel.innerHTML = PATCHES.map(pt => rowHtml(pt)).join('');
+    PATCHES.forEach(pt => {
+      const sel = document.getElementById('sel-' + pt.id);
+      if (sel) sel.addEventListener('change', e => {
+        patchState[pt.id].cropIndex = parseInt(e.target.value);
+        // clamp if out of range
+        if (patchState[pt.id].cropIndex >= pt.crops.length) patchState[pt.id].cropIndex = 0;
+        savePatchState();
+        const el = document.getElementById('dur-' + pt.id);
+        if (el) el.textContent = formatMin(pt.crops[patchState[pt.id].cropIndex].duration);
+      });
+    });
+    updateButtons();
+  }
+
+  function rowHtml(pt) {
+    const state  = patchState[pt.id] || {active:false,cropIndex:0};
+    const active = state.active;
+    const cropIdx = Math.min(state.cropIndex, pt.crops.length - 1);
+    const timer  = timers[pt.id];
+
+    let rowClass = 'patch-row ';
+    if (running && active && timer) {
+      const rem = timer.durationMs - (Date.now() - timer.plantedAt);
+      rowClass += rem <= 0 ? 'run-ready' : rem / timer.durationMs < 0.1 ? 'run-warning' : 'running';
+    } else if (running && !active) {
+      rowClass += 'run-idle';
+    } else {
+      rowClass += active ? 'active' : 'inactive';
+    }
+
+    const crop    = pt.crops[cropIdx];
+    const durHint = formatMin(crop.duration);
+
+    let rightHtml = '';
+    if (running && active && timer) {
+      const elapsed   = Date.now() - timer.plantedAt;
+      const remaining = timer.durationMs - elapsed;
+      const pct       = Math.max(0, Math.min(100, (elapsed / timer.durationMs) * 100));
+      const tState    = remaining <= 0 ? 'ready' : remaining / timer.durationMs < 0.1 ? 'warning' : 'growing';
+      const timeLabel = remaining <= 0 ? '✔ Ready!' : formatMs(remaining);
+      rightHtml = `
+        <div class="timer-block" id="tblock-${pt.id}">
+          <div class="timer-top-row">
+            <span class="timer-crop-label">${esc(crop.name)}</span>
+            <span class="timer-countdown ${tState}" id="countdown-${pt.id}">${timeLabel}</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill ${tState}" id="bar-${pt.id}" style="width:${pct}%"></div></div>
+        </div>`;
+    } else {
+      const opts = pt.crops.map((c,i) =>
+        `<option value="${i}" ${i===cropIdx?'selected':''}>${esc(c.name)} (${formatMin(c.duration)})</option>`
+      ).join('');
+      rightHtml = `<select id="sel-${pt.id}" ${!active||running?'disabled':''}>${opts}</select>`;
+    }
+
+    const cancelBtn = (running && active && timer)
+      ? `<button class="btn-cancel-timer" onclick="cancelTimer('${pt.id}')" title="Cancel this timer">✕</button>`
+      : '';
+
+    const toggleClick = !running ? `onclick="togglePatch('${pt.id}')"` : '';
+
+    return `
+      <div class="patch-row ${rowClass.trim()}" id="row-${pt.id}">
+        <div class="patch-toggle" ${toggleClick} style="${!running?'cursor:pointer':''}">
+          ${active ? '✓' : ''}
+        </div>
+        <div class="patch-icon">${pt.icon}</div>
+        <div class="patch-meta">
+          <div class="patch-type-name">${esc(pt.name)}</div>
+          <div class="patch-sub" id="dur-${pt.id}">${durHint}</div>
+        </div>
+        <div class="patch-right" id="right-${pt.id}">${rightHtml}</div>
+        ${cancelBtn}
+      </div>`;
+  }
+
+  function togglePatch(id) {
+    if (running) return;
+    if (!patchState[id]) patchState[id] = {active:false,cropIndex:0};
+    patchState[id].active = !patchState[id].active;
+    savePatchState();
+    buildPanel();
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  START / CANCEL / RESET
+  // ═══════════════════════════════════════════════════════
+  function startRun() {
+    const active = PATCHES.filter(pt => patchState[pt.id] && patchState[pt.id].active);
+    if (!active.length) return;
+    const now = Date.now();
+    active.forEach(pt => {
+      const idx = Math.min(patchState[pt.id].cropIndex, pt.crops.length - 1);
+      const crop = pt.crops[idx];
+      timers[pt.id] = { cropName:crop.name, durationMs:crop.duration*60*1000, plantedAt:now };
+    });
+    running = true;
+    saveTimers(); saveRunning(); buildPanel();
+    showFlash('🌱 Run started — ' + active.length + ' timer' + (active.length>1?'s':'') + ' running!');
+  }
+
+  // Cancel whole run — goes back to setup with selections preserved
+  function cancelRun() {
+    running = false;
+    timers  = {};
+    saveTimers(); saveRunning(); buildPanel();
+    showFlash('↩ Run cancelled');
+  }
+
+  // Cancel a single patch timer mid-run
+  function cancelTimer(id) {
+    delete timers[id];
+    patchState[id].active = false;
+    // If no timers left, end run
+    if (Object.keys(timers).length === 0) {
+      running = false;
+      saveRunning();
+    }
+    saveTimers(); savePatchState(); buildPanel();
+  }
+
+  // Reset — clears everything, fresh slate
+  function resetRun() {
+    running = false;
+    timers  = {};
+    PATCHES.forEach(pt => { if (patchState[pt.id]) patchState[pt.id].active = false; });
+    saveTimers(); saveRunning(); savePatchState(); buildPanel();
+  }
+
+  function updateButtons() {
+    const anyActive = PATCHES.some(pt => patchState[pt.id] && patchState[pt.id].active);
+    document.getElementById('btn-start').disabled = !anyActive || running;
+    document.getElementById('btn-start').style.display      = running ? 'none' : '';
+    document.getElementById('btn-cancel-run').style.display = running ? '' : 'none';
+    document.getElementById('btn-reset').style.display      = running ? '' : 'none';
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  SETUP TAB
+  // ═══════════════════════════════════════════════════════
+  function buildSetup() {
+    const panel = document.getElementById('setup-panel');
+    panel.innerHTML = PATCHES.map(pt => `
+      <div class="setup-section">
+        <div class="setup-section-header">
+          <div class="setup-section-title">${pt.icon} ${esc(pt.name)}</div>
+          <span class="setup-hint">${pt.crops.length} crop${pt.crops.length!==1?'s':''}</span>
+        </div>
+        <div class="setup-crops" id="crops-${pt.id}">
+          ${pt.crops.map((c,i) => cropRowHtml(pt.id, i, c)).join('')}
+        </div>
+        <button class="btn-add-crop" onclick="addCrop('${pt.id}')">+ Add crop</button>
+      </div>`
+    ).join('');
+  }
+
+  function cropRowHtml(ptId, idx, crop) {
+    return `
+      <div class="crop-row" id="croprow-${ptId}-${idx}">
+        <input type="text"   value="${esc(crop.name)}"     placeholder="Crop name"
+          oninput="updateCropName('${ptId}',${idx},this.value)" />
+        <input type="number" value="${crop.duration}" min="1" max="99999" placeholder="min"
+          oninput="updateCropDuration('${ptId}',${idx},this.value)" />
+        <span class="crop-row-label">min</span>
+        <button class="btn-del-crop" onclick="deleteCrop('${ptId}',${idx})" title="Remove">✕</button>
+      </div>`;
+  }
+
+  function updateCropName(ptId, idx, val) {
+    const pt = PATCHES.find(p => p.id === ptId);
+    if (!pt) return;
+    pt.crops[idx].name = val;
+    savePatches();
+  }
+
+  function updateCropDuration(ptId, idx, val) {
+    const pt = PATCHES.find(p => p.id === ptId);
+    if (!pt) return;
+    const dur = parseInt(val);
+    if (!isNaN(dur) && dur > 0) { pt.crops[idx].duration = dur; savePatches(); }
+  }
+
+  function addCrop(ptId) {
+    const pt = PATCHES.find(p => p.id === ptId);
+    if (!pt) return;
+    pt.crops.push({ name:'New Crop', duration:80 });
+    savePatches();
+    buildSetup();
+  }
+
+  function deleteCrop(ptId, idx) {
+    const pt = PATCHES.find(p => p.id === ptId);
+    if (!pt || pt.crops.length <= 1) return; // keep at least one
+    pt.crops.splice(idx, 1);
+    // Fix cropIndex if it's now out of bounds
+    if (patchState[ptId] && patchState[ptId].cropIndex >= pt.crops.length)
+      patchState[ptId].cropIndex = 0;
+    savePatches(); savePatchState(); buildSetup();
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  OVERLAY — draws timer info directly on the RS screen
+  // ═══════════════════════════════════════════════════════
+
+  // Alt1 color format: 0xAABBGGRR (alpha, blue, green, red)
+  function a1color(r, g, b, a) {
+    a = (a === undefined) ? 255 : a;
+    return ((a & 0xff) << 24) | ((b & 0xff) << 16) | ((g & 0xff) << 8) | (r & 0xff);
+  }
+  const COL_WHITE   = a1color(255, 255, 255);
+  const COL_GREEN   = a1color(90,  200, 100);
+  const COL_ORANGE  = a1color(220, 140,  60);
+  const COL_GOLD    = a1color(210, 175,  80);
+  const COL_BGDARK  = a1color( 10,  20,  10, 200);
+  const COL_BGREEN  = a1color( 58, 122,  61, 220);
+  const COL_BORANGE = a1color(160,  96,  48, 220);
+
+  const OVERLAY_TTL    = 1800;  // ms — slightly > 1 second tick so no flicker
+  const ROW_H          = 18;    // px per timer row
+  const BAR_W          = 80;    // px wide for the progress bar
+  const BAR_H          = 4;     // px tall
+  const FONT_SIZE      = 12;
+  const LABEL_W        = 52;    // px for icon+name label
+
+  function drawOverlay() {
+    if (!overlayEnabled) return;
+    if (typeof alt1 === 'undefined' || !alt1.permissionOverlay) return;
+    if (!running) { alt1.overLayClearGroup('farming'); return; }
+
+    const activeTimers = PATCHES.filter(pt => timers[pt.id]);
+    if (!activeTimers.length) { alt1.overLayClearGroup('farming'); return; }
+
+    alt1.overLaySetGroup('farming');
+    alt1.overLayClearGroup('farming');
+
+    // Anchor to RS window top-left
+    const baseX = (alt1.rsLinked ? alt1.rsX : 0) + overlayX;
+    const baseY = (alt1.rsLinked ? alt1.rsY : 0) + overlayY;
+
+    activeTimers.forEach((pt, i) => {
+      const timer     = timers[pt.id];
+      const elapsed   = Date.now() - timer.plantedAt;
+      const remaining = timer.durationMs - elapsed;
+      const pct       = Math.max(0, Math.min(1, elapsed / timer.durationMs));
+      const isReady   = remaining <= 0;
+      const isWarn    = !isReady && remaining / timer.durationMs < 0.1;
+
+      const rowY      = baseY + i * ROW_H;
+      const textColor = isReady ? COL_GREEN : isWarn ? COL_ORANGE : COL_WHITE;
+      const barColor  = isReady ? COL_BGREEN : isWarn ? COL_BORANGE : COL_BGREEN;
+
+      const label     = pt.icon + ' ' + pt.name;
+      const timeStr   = isReady ? 'Ready!' : formatMsShort(remaining);
+
+      // Background pill
+      const totalW = LABEL_W + 6 + BAR_W + 6 + 42;
+      alt1.overLayRect(COL_BGDARK, baseX, rowY, totalW, ROW_H - 2, OVERLAY_TTL, 0);
+
+      // Patch name label
+      alt1.overLayText(label, COL_GOLD, FONT_SIZE, baseX + 2, rowY + 1, OVERLAY_TTL);
+
+      // Progress bar background
+      const barX = baseX + LABEL_W + 4;
+      const barY = rowY + (ROW_H - BAR_H) / 2 - 1;
+      alt1.overLayRect(a1color(30, 50, 30, 180), barX, barY, BAR_W, BAR_H, OVERLAY_TTL, 0);
+
+      // Progress bar fill
+      const fillW = Math.max(2, Math.round(BAR_W * (isReady ? 1 : pct)));
+      alt1.overLayRect(barColor, barX, barY, fillW, BAR_H, OVERLAY_TTL, 0);
+
+      // Countdown text
+      alt1.overLayText(timeStr, textColor, FONT_SIZE, barX + BAR_W + 4, rowY + 1, OVERLAY_TTL);
+    });
+  }
+
+  function formatMsShort(ms) {
+    if (ms <= 0) return 'Ready!';
+    const s = Math.ceil(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (h > 0) return h + 'h ' + m + 'm';
+    if (m > 0) return m + 'm ' + sec + 's';
+    return sec + 's';
+  }
+
+  function onOverlayToggle(checked) {
+    overlayEnabled = checked;
+    localStorage.setItem('rs3_overlay_on', String(checked));
+    document.getElementById('overlay-controls').style.display = checked ? '' : 'none';
+    if (!checked && typeof alt1 !== 'undefined' && alt1.permissionOverlay) {
+      alt1.overLayClearGroup('farming');
+    }
+  }
+
+  function saveOverlayPos() {
+    overlayX = parseInt(document.getElementById('overlay-x').value) || 0;
+    overlayY = parseInt(document.getElementById('overlay-y').value) || 0;
+    localStorage.setItem('rs3_overlay_x', String(overlayX));
+    localStorage.setItem('rs3_overlay_y', String(overlayY));
+  }
+
+  function resetOverlayPos() {
+    overlayX = 10; overlayY = 30;
+    document.getElementById('overlay-x').value = overlayX;
+    document.getElementById('overlay-y').value = overlayY;
+    localStorage.setItem('rs3_overlay_x', String(overlayX));
+    localStorage.setItem('rs3_overlay_y', String(overlayY));
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  TICK
+  // ═══════════════════════════════════════════════════════
+  function tick() {
+    if (!running || activeTab !== 'run') return;
+    PATCHES.forEach(pt => {
+      const timer = timers[pt.id];
+      if (!timer) return;
+      const elapsed   = Date.now() - timer.plantedAt;
+      const remaining = timer.durationMs - elapsed;
+      const pct       = Math.max(0, Math.min(100, (elapsed/timer.durationMs)*100));
+      const tState    = remaining<=0 ? 'ready' : remaining/timer.durationMs<0.1 ? 'warning' : 'growing';
+      const cd  = document.getElementById('countdown-' + pt.id);
+      const bar = document.getElementById('bar-' + pt.id);
+      const row = document.getElementById('row-' + pt.id);
+      if (cd)  { cd.textContent = remaining<=0?'✔ Ready!':formatMs(remaining); cd.className='timer-countdown '+tState; }
+      if (bar) { bar.style.width=pct+'%'; bar.className='bar-fill '+tState; }
+      if (row) { row.className='patch-row '+(tState==='ready'?'run-ready':tState==='warning'?'run-warning':'running'); }
+    });
+    drawOverlay();
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  FLASH
+  // ═══════════════════════════════════════════════════════
+  function showFlash(msg) {
+    const el = document.getElementById('plant-flash');
+    el.textContent = msg; el.classList.remove('show');
+    void el.offsetWidth; el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1600);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  HELPERS
+  // ═══════════════════════════════════════════════════════
+  function formatMs(ms) {
+    if (ms<=0) return 'Ready!';
+    const s=Math.ceil(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+    if (h>0) return h+'h '+m+'m '+sec+'s';
+    if (m>0) return m+'m '+sec+'s';
+    return sec+'s';
+  }
+  function formatMin(min) {
+    if (min>=60) return Math.floor(min/60)+'h'+(min%60?' '+(min%60)+'m':'');
+    return min+'m';
+  }
+  function esc(str) {
+    return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  BOOT
+  // ═══════════════════════════════════════════════════════
+  buildPanel();
+  setInterval(tick, 1000);
+  setInterval(saveTimers, 30000);
+
+  // Restore overlay UI state
+  document.getElementById('overlay-enabled').checked = overlayEnabled;
+  document.getElementById('overlay-controls').style.display = overlayEnabled ? '' : 'none';
+  document.getElementById('overlay-x').value = overlayX;
+  document.getElementById('overlay-y').value = overlayY;
+  </script>
+</body>
+</html>
