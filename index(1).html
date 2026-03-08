@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RS3 Farming Timers</title>
+
+  <meta name="alt1:name"        content="RS3 Farming Timers" />
+  <meta name="alt1:author"      content="You" />
+  <meta name="alt1:description" content="Track your RS3 farming patch timers" />
+  <meta name="alt1:version"     content="1.2.0" />
+  <meta name="alt1:perm"        content="pixel gamestate" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:         #0d110e;
+      --surface:    #131a14;
+      --border:     #2a3d2b;
+      --accent:     #5aad5e;
+      --accent-dim: #3a7a3d;
+      --gold:       #c9a84c;
+      --gold-dim:   #7a6230;
+      --text:       #d4e8d0;
+      --text-dim:   #7a9b7c;
+      --warn:       #d4874a;
+      --danger:     #c95252;
+      --bar-bg:     #1a251b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 12px;
+      background-image:
+        radial-gradient(ellipse at top left, #1a2e1b 0%, transparent 60%),
+        radial-gradient(ellipse at bottom right, #0f1e10 0%, transparent 60%);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: var(--gold);
+      text-shadow: 0 0 12px #c9a84c55;
+    }
+    header p { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+    .section-label {
+      font-family: 'Cinzel', serif;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .setup-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .step:last-child { margin-bottom: 0; }
+
+    .step-num {
+      font-family: 'Cinzel', serif;
+      font-size: 10px;
+      color: var(--gold-dim);
+      background: #1a2510;
+      border: 1px solid var(--gold-dim);
+      border-radius: 50%;
+      width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    select {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'Crimson Pro', serif;
+      font-size: 13px;
+      padding: 5px 8px;
+      outline: none;
+      transition: border-color 0.2s;
+      min-width: 0;
+    }
+    select:focus { border-color: var(--accent-dim); }
+    select option { background: #131a14; }
+
+    #active-crop-display {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: #0f1e10;
+      border: 1px solid var(--accent-dim);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+    }
+    #active-crop-display.visible { display: flex; }
+
+    .active-icon { font-size: 18px; }
+    .active-info { flex: 1; min-width: 0; }
+    .active-name {
+      font-family: 'Cinzel', serif;
+      font-size: 12px;
+      color: var(--gold);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .active-sub { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+
+    .hotkey-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .hotkey-key {
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent-dim), #2d5e30);
+      border: 1px solid var(--accent);
+      border-radius: 5px;
+      padding: 4px 10px;
+      box-shadow: 0 2px 0 #1a3d1d, 0 0 8px #5aad5e33;
+      cursor: pointer;
+      transition: all 0.1s;
+      user-select: none;
+      letter-spacing: 1px;
+    }
+    .hotkey-key:active {
+      transform: translateY(2px);
+      box-shadow: 0 0 0 #1a3d1d;
+    }
+    .hotkey-label { font-size: 9px; color: var(--text-dim); letter-spacing: 0.5px; }
+
+    #plant-flash {
+      display: none;
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #0f2e12ee;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      color: var(--accent);
+      letter-spacing: 1px;
+      text-align: center;
+      z-index: 999;
+      pointer-events: none;
+    }
+    #plant-flash.show {
+      display: block;
+      animation: flashFade 1.2s ease forwards;
+    }
+    @keyframes flashFade {
+      0%   { opacity: 0; transform: translate(-50%, -54%); }
+      15%  { opacity: 1; transform: translate(-50%, -50%); }
+      70%  { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    #hotkey-recorder {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-dim);
+      font-family: 'Crimson Pro', serif;
+      font-size: 12px;
+      padding: 5px 8px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      flex: 1;
+      text-align: center;
+      user-select: none;
+    }
+    #hotkey-recorder.listening { border-color: var(--gold); color: var(--gold); }
+    #hotkey-recorder.has-key   { border-color: var(--accent-dim); color: var(--accent); }
+
+    #timers-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .timer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 11px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .timer-card.warning { border-color: var(--warn); }
+    .timer-card.ready   { border-color: var(--accent); box-shadow: 0 0 10px #5aad5e33; }
+
+    .timer-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--border);
+      border-radius: 6px 0 0 6px;
+      transition: background 0.3s;
+    }
+    .timer-card.warning::before { background: var(--warn); }
+    .timer-card.ready::before   { background: var(--accent); }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+    }
+    .card-name { font-family: 'Cinzel', serif; font-size: 12px; color: var(--gold); }
+    .card-crop { font-size: 12px; color: var(--text-dim); margin-left: 5px; }
+
+    .card-time { font-size: 12px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+    .card-time.warning { color: var(--warn); }
+    .card-time.ready   { color: var(--accent); }
+
+    .bar-track {
+      height: 6px;
+      background: var(--bar-bg);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+      transition: width 1s linear, background 1s;
+    }
+    .bar-fill.warning { background: linear-gradient(90deg, #a06030, var(--warn)); }
+    .bar-fill.ready   { background: linear-gradient(90deg, #3a7a3d, var(--accent)); animation: pulseGreen 1.5s infinite; }
+    @keyframes pulseGreen { 0%,100%{opacity:1} 50%{opacity:0.65} }
+
+    .card-bottom { display: flex; justify-content: space-between; align-items: center; }
+    .card-status { font-size: 11px; color: var(--text-dim); }
+    .card-status.warning { color: var(--warn); }
+    .card-status.ready   { color: var(--accent); font-weight: 600; }
+
+    .btn-remove {
+      background: none; border: none; color: #3a4e3b;
+      cursor: pointer; font-size: 14px; line-height: 1;
+      padding: 0 2px; transition: color 0.2s;
+    }
+    .btn-remove:hover { color: var(--danger); }
+
+    .empty-state {
+      text-align: center; padding: 20px 10px;
+      color: var(--text-dim); font-size: 13px; font-style: italic;
+    }
+    .empty-state .icon { font-size: 26px; margin-bottom: 6px; }
+
+    footer {
+      margin-top: 12px; text-align: center;
+      font-size: 10px; color: #2a3d2b;
+    }
+
+    #alt1-warning {
+      display: none;
+      background: #2a1a0a;
+      border: 1px solid var(--warn);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: var(--warn);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🌱 FARMING TIMERS</h1>
+    <p>RuneScape 3 — Patch Tracker</p>
+  </header>
+
+  <div id="alt1-warning">
+    ⚠ Alt1 not detected — timers work, hotkey active while this window is focused.
+  </div>
+
+  <!-- SETUP PANEL -->
+  <div class="setup-panel">
+    <div class="section-label" style="margin-bottom:8px">Before your farm run</div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <select id="patch-select" onchange="onCropSelected()">
+        <option value="">— Choose your crop —</option>
+        <optgroup label="Herb (80 min)">
+          <option value="Herb|Guam|80">Guam</option>
+          <option value="Herb|Marrentill|80">Marrentill</option>
+          <option value="Herb|Tarromin|80">Tarromin</option>
+          <option value="Herb|Harralander|80">Harralander</option>
+          <option value="Herb|Ranarr|80">Ranarr</option>
+          <option value="Herb|Toadflax|80">Toadflax</option>
+          <option value="Herb|Irit|80">Irit</option>
+          <option value="Herb|Avantoe|80">Avantoe</option>
+          <option value="Herb|Kwuarm|80">Kwuarm</option>
+          <option value="Herb|Snapdragon|80">Snapdragon</option>
+          <option value="Herb|Cadantine|80">Cadantine</option>
+          <option value="Herb|Lantadyme|80">Lantadyme</option>
+          <option value="Herb|Dwarf Weed|80">Dwarf Weed</option>
+          <option value="Herb|Torstol|80">Torstol</option>
+          <option value="Herb|Arbuck|80">Arbuck</option>
+        </optgroup>
+        <optgroup label="Allotment">
+          <option value="Allotment|Potato|10">Potato (10 min)</option>
+          <option value="Allotment|Onion|20">Onion (20 min)</option>
+          <option value="Allotment|Cabbage|20">Cabbage (20 min)</option>
+          <option value="Allotment|Tomato|20">Tomato (20 min)</option>
+          <option value="Allotment|Sweetcorn|60">Sweetcorn (60 min)</option>
+          <option value="Allotment|Strawberry|60">Strawberry (60 min)</option>
+          <option value="Allotment|Watermelon|80">Watermelon (80 min)</option>
+          <option value="Allotment|Snape Grass|80">Snape Grass (80 min)</option>
+        </optgroup>
+        <optgroup label="Tree">
+          <option value="Tree|Oak|160">Oak (160 min)</option>
+          <option value="Tree|Willow|280">Willow (280 min)</option>
+          <option value="Tree|Maple|480">Maple (480 min)</option>
+          <option value="Tree|Yew|960">Yew (960 min)</option>
+          <option value="Tree|Magic|1600">Magic (1600 min)</option>
+        </optgroup>
+        <optgroup label="Fruit Tree">
+          <option value="Fruit Tree|Apple|960">Apple (960 min)</option>
+          <option value="Fruit Tree|Banana|960">Banana (960 min)</option>
+          <option value="Fruit Tree|Orange|960">Orange (960 min)</option>
+          <option value="Fruit Tree|Curry|960">Curry (960 min)</option>
+          <option value="Fruit Tree|Pineapple|1120">Pineapple (1120 min)</option>
+          <option value="Fruit Tree|Papaya|1120">Papaya (1120 min)</option>
+          <option value="Fruit Tree|Palm|1440">Palm (1440 min)</option>
+          <option value="Fruit Tree|Dragonfruit|1440">Dragonfruit (1440 min)</option>
+        </optgroup>
+        <optgroup label="Flower (20 min)">
+          <option value="Flower|Marigold|20">Marigold</option>
+          <option value="Flower|Rosemary|20">Rosemary</option>
+          <option value="Flower|Nasturtium|20">Nasturtium</option>
+          <option value="Flower|Woad|20">Woad</option>
+          <option value="Flower|Limpwurt|20">Limpwurt</option>
+        </optgroup>
+        <optgroup label="Bush">
+          <option value="Bush|Redberry|160">Redberry (160 min)</option>
+          <option value="Bush|Cadavaberry|200">Cadavaberry (200 min)</option>
+          <option value="Bush|Dwellberry|240">Dwellberry (240 min)</option>
+          <option value="Bush|Jangerberry|280">Jangerberry (280 min)</option>
+          <option value="Bush|Whiteberry|320">Whiteberry (320 min)</option>
+          <option value="Bush|Poison Ivy|400">Poison Ivy (400 min)</option>
+        </optgroup>
+        <optgroup label="Other">
+          <option value="Hops|Barley|60">Hops — Barley (60 min)</option>
+          <option value="Hops|Asgarnian|80">Hops — Asgarnian (80 min)</option>
+          <option value="Hops|Yanillian|80">Hops — Yanillian (80 min)</option>
+          <option value="Mushroom|Bittercap|240">Mushroom — Bittercap (240 min)</option>
+          <option value="Cactus|Potato Cactus|320">Cactus (320 min)</option>
+          <option value="Belladonna|Deadly Nightshade|480">Belladonna (480 min)</option>
+          <option value="Seaweed|Giant Seaweed|280">Seaweed (280 min)</option>
+          <option value="Spirit|Spirit Tree|3200">Spirit Tree (3200 min)</option>
+          <option value="Calquat|Calquat|1280">Calquat (1280 min)</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div id="hotkey-recorder" class="has-key" onclick="startListening()">F2</div>
+      <span style="font-size:11px;color:var(--text-dim)">click to change</span>
+    </div>
+  </div>
+
+  <!-- ACTIVE CROP DISPLAY -->
+  <div id="active-crop-display">
+    <div class="active-icon">🌿</div>
+    <div class="active-info">
+      <div class="active-name" id="active-name">—</div>
+      <div class="active-sub">Press <strong id="active-hotkey-label" style="color:var(--gold)">F2</strong> at each patch to start a timer</div>
+    </div>
+    <div class="hotkey-badge">
+      <div class="hotkey-key" id="hotkey-key-display" onclick="quickPlant()">F2</div>
+      <div class="hotkey-label">or press key</div>
+    </div>
+  </div>
+
+  <!-- TIMERS -->
+  <div class="section-label" style="margin-bottom:6px">Active patches</div>
+  <div id="timers-list">
+    <div class="empty-state">
+      <div class="icon">🌾</div>
+      No patches running yet.<br>Choose a crop above, then press your hotkey at each patch.
+    </div>
+  </div>
+
+  <div id="plant-flash">🌱 Timer started!</div>
+
+  <footer>Alt1 Farming Tracker · hotkey active while this window is focused</footer>
+
+  <script>
+    let timers     = loadTimers();
+    let activeCrop = loadActiveCrop();
+    let hotkey     = localStorage.getItem('rs3_hotkey') || 'F2';
+    let listening  = false;
+    let patchCount = parseInt(localStorage.getItem('rs3_patch_counter') || '0');
+
+    if (typeof alt1 === 'undefined') {
+      document.getElementById('alt1-warning').style.display = 'block';
+    }
+
+    // ── Persistence ──────────────────────────────────────────
+    function loadTimers() {
+      try { return JSON.parse(localStorage.getItem('rs3_farming_timers') || '[]'); }
+      catch { return []; }
+    }
+    function saveTimers() {
+      localStorage.setItem('rs3_farming_timers', JSON.stringify(timers));
+    }
+    function loadActiveCrop() {
+      try { return JSON.parse(localStorage.getItem('rs3_active_crop') || 'null'); }
+      catch { return null; }
+    }
+    function saveActiveCrop() {
+      localStorage.setItem('rs3_active_crop', JSON.stringify(activeCrop));
+    }
+
+    // ── Crop selection ───────────────────────────────────────
+    function onCropSelected() {
+      const sel = document.getElementById('patch-select');
+      if (!sel.value) {
+        activeCrop = null;
+        patchCount = 0;
+      } else {
+        const [patchType, cropName, durationMin] = sel.value.split('|');
+        activeCrop = { patchType, cropName, durationMs: parseInt(durationMin) * 60 * 1000 };
+        patchCount = 0;
+      }
+      saveActiveCrop();
+      localStorage.setItem('rs3_patch_counter', '0');
+      updateActiveCropDisplay();
+    }
+
+    function updateActiveCropDisplay() {
+      const el = document.getElementById('active-crop-display');
+      if (!activeCrop) { el.classList.remove('visible'); return; }
+      el.classList.add('visible');
+      document.getElementById('active-name').textContent =
+        activeCrop.cropName + '  ·  ' + formatMs(activeCrop.durationMs) + ' grow time';
+      document.getElementById('active-hotkey-label').textContent = hotkey;
+    }
+
+    // ── Hotkey recorder ──────────────────────────────────────
+    function startListening() {
+      if (listening) return;
+      listening = true;
+      const rec = document.getElementById('hotkey-recorder');
+      rec.textContent = '… press a key …';
+      rec.classList.add('listening');
+      rec.classList.remove('has-key');
+    }
+
+    document.addEventListener('keydown', e => {
+      if (listening) {
+        if (['Control','Shift','Alt','Meta'].includes(e.key)) return;
+        e.preventDefault();
+        const parts = [];
+        if (e.ctrlKey)  parts.push('Ctrl');
+        if (e.shiftKey) parts.push('Shift');
+        if (e.altKey)   parts.push('Alt');
+        parts.push(e.key === ' ' ? 'Space' : e.key);
+        hotkey = parts.join('+');
+        localStorage.setItem('rs3_hotkey', hotkey);
+        listening = false;
+        const rec = document.getElementById('hotkey-recorder');
+        rec.textContent = hotkey;
+        rec.classList.remove('listening');
+        rec.classList.add('has-key');
+        document.getElementById('hotkey-key-display').textContent = hotkey;
+        updateActiveCropDisplay();
+        return;
+      }
+
+      if (!activeCrop) return;
+      const parts = [];
+      if (e.ctrlKey)  parts.push('Ctrl');
+      if (e.shiftKey) parts.push('Shift');
+      if (e.altKey)   parts.push('Alt');
+      parts.push(e.key === ' ' ? 'Space' : e.key);
+      if (parts.join('+') === hotkey) { e.preventDefault(); quickPlant(); }
+    });
+
+    // ── Quick plant ──────────────────────────────────────────
+    function quickPlant() {
+      if (!activeCrop) return;
+      patchCount++;
+      localStorage.setItem('rs3_patch_counter', String(patchCount));
+      timers.push({
+        id:         Date.now(),
+        patchType:  activeCrop.patchType,
+        cropName:   activeCrop.cropName,
+        label:      activeCrop.patchType + ' patch ' + patchCount,
+        durationMs: activeCrop.durationMs,
+        plantedAt:  Date.now()
+      });
+      saveTimers();
+      renderAll();
+      showFlash();
+    }
+
+    function showFlash() {
+      const el = document.getElementById('plant-flash');
+      el.classList.remove('show');
+      void el.offsetWidth;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 1300);
+    }
+
+    // ── Remove ───────────────────────────────────────────────
+    function removeTimer(id) {
+      timers = timers.filter(t => t.id !== id);
+      saveTimers();
+      renderAll();
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+    function formatMs(ms) {
+      if (ms <= 0) return 'Ready!';
+      const s = Math.ceil(ms / 1000);
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      if (h > 0) return h + 'h ' + m + 'm ' + sec + 's';
+      if (m > 0) return m + 'm ' + sec + 's';
+      return sec + 's';
+    }
+    function getState(remaining, duration) {
+      if (remaining <= 0) return 'ready';
+      if (remaining / duration < 0.10) return 'warning';
+      return 'growing';
+    }
+    function escHtml(str) {
+      return str.replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // ── Render ───────────────────────────────────────────────
+    function renderAll() {
+      const list = document.getElementById('timers-list');
+      if (timers.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="icon">🌾</div>No patches running yet.<br>Choose a crop above, then press your hotkey at each patch.</div>';
+        return;
+      }
+      const sorted = [...timers].sort((a, b) => {
+        const aR = a.durationMs - (Date.now() - a.plantedAt);
+        const bR = b.durationMs - (Date.now() - b.plantedAt);
+        return bR - aR;
+      });
+      list.innerHTML = sorted.map(t => {
+        const elapsed   = Date.now() - t.plantedAt;
+        const remaining = t.durationMs - elapsed;
+        const pct       = Math.max(0, Math.min(100, (elapsed / t.durationMs) * 100));
+        const state     = getState(remaining, t.durationMs);
+        const timeLabel = state === 'ready' ? '✔ Ready!' : formatMs(remaining);
+        const statusText = state === 'ready' ? '✔ Ready to harvest!'
+          : state === 'warning' ? '⚠ Almost ready!'
+          : 'Planted ' + new Date(t.plantedAt).toLocaleTimeString();
+        return '<div class="timer-card ' + state + '" id="card-' + t.id + '" data-state="' + state + '">' +
+          '<div class="card-top"><div>' +
+          '<span class="card-name">' + escHtml(t.label) + '</span>' +
+          '<span class="card-crop">— ' + escHtml(t.cropName) + '</span>' +
+          '</div><div style="display:flex;align-items:center;gap:8px">' +
+          '<span class="card-time ' + state + '">' + timeLabel + '</span>' +
+          '<button class="btn-remove" onclick="removeTimer(' + t.id + ')" title="Remove">✕</button>' +
+          '</div></div>' +
+          '<div class="bar-track"><div class="bar-fill ' + state + '" style="width:' + pct + '%"></div></div>' +
+          '<div class="card-bottom"><span class="card-status ' + state + '">' + statusText + '</span>' +
+          '<span style="font-size:10px;color:#344834">' + t.patchType + '</span></div></div>';
+      }).join('');
+    }
+
+    // ── Tick ─────────────────────────────────────────────────
+    function tick() {
+      let needsReorder = false;
+      timers.forEach(t => {
+        const card = document.getElementById('card-' + t.id);
+        if (!card) return;
+        const elapsed   = Date.now() - t.plantedAt;
+        const remaining = t.durationMs - elapsed;
+        const pct       = Math.max(0, Math.min(100, (elapsed / t.durationMs) * 100));
+        const state     = getState(remaining, t.durationMs);
+        if (state !== card.dataset.state) { needsReorder = true; card.dataset.state = state; }
+        card.className = 'timer-card ' + state;
+        const timeEl = card.querySelector('.card-time');
+        timeEl.textContent = state === 'ready' ? '✔ Ready!' : formatMs(remaining);
+        timeEl.className = 'card-time ' + state;
+        const bar = card.querySelector('.bar-fill');
+        bar.style.width = pct + '%';
+        bar.className = 'bar-fill ' + state;
+        const statusEl = card.querySelector('.card-status');
+        statusEl.className = 'card-status ' + state;
+        statusEl.textContent = state === 'ready' ? '✔ Ready to harvest!'
+          : state === 'warning' ? '⚠ Almost ready!'
+          : 'Planted ' + new Date(t.plantedAt).toLocaleTimeString();
+      });
+      if (needsReorder) renderAll();
+    }
+
+    // ── Boot ─────────────────────────────────────────────────
+    document.getElementById('hotkey-recorder').textContent = hotkey;
+    document.getElementById('hotkey-key-display').textContent = hotkey;
+
+    if (activeCrop) {
+      const sel = document.getElementById('patch-select');
+      const matchVal = activeCrop.patchType + '|' + activeCrop.cropName + '|' + (activeCrop.durationMs / 60000);
+      for (const opt of sel.options) {
+        if (opt.value === matchVal) { sel.value = opt.value; break; }
+      }
+    }
+
+    updateActiveCropDisplay();
+    renderAll();
+    setInterval(tick, 1000);
+    setInterval(saveTimers, 30000);
+  </script>
+</body>
+</html>

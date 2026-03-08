@@ -1,0 +1,12 @@
+{
+  "appName": "RS3 Farming Timers",
+  "description": "Track your RuneScape 3 farming patch timers with visual progress bars.",
+  "version": "1.0.0",
+  "author": "You",
+  "indexUrl": "index.html",
+  "iconUrl": "icon.png",
+  "permissions": [
+    "pixel",
+    "gamestate"
+  ]
+}
