@@ -7,10 +7,12 @@
   <meta name="alt1:name"        content="RS3 Farming Timers" />
   <meta name="alt1:author"      content="WerewolfChef94" />
   <meta name="alt1:description" content="Track your RS3 farming patch timers by category" />
-  <meta name="alt1:version"     content="4.0.0" />
+  <meta name="alt1:version"     content="4.1.0" />
   <meta name="alt1:perm"        content="pixel gamestate overlay" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+  <script src="https://runeapps.org/imagelibs/alt1lib.js"></script>
+  <script src="https://runeapps.org/imagelibs/chatbox.js"></script>
   <style>
     :root {
       --bg:         #0d110e;
@@ -179,6 +181,7 @@
         <div class="setup-crops" id="autodetect-counts">
         </div>
         <div class="overlay-hint" style="margin-top:6px">Requires <strong style="color:var(--text)">Pixel</strong> permission in Alt1 settings.</div>
+        <div id="chat-status" style="margin-top:6px;font-size:11px;color:var(--accent);min-height:16px;"></div>
       </div>
     </div>
     <div class="setup-section">
@@ -473,40 +476,81 @@
     if (el) el.textContent = count + ' / ' + target;
   }
 
+  // ── ChatBoxReader setup ───────────────────────────────────
+  // Uses the official runeapps chatbox.js library loaded via <script> tag.
+  // ChatBoxReader.find() locates the chatbox by scanning the screen.
+  // ChatBoxReader.read() returns an array of line objects with a .text property.
+  let chatReader = null;
+  let chatReaderReady = false;
+
+  function initChatReader() {
+    // ChatBoxReader is defined by chatbox.js from runeapps.org
+    if (typeof ChatBoxReader === 'undefined') {
+      updateChatStatus('⚠ chatbox.js not loaded');
+      return false;
+    }
+    if (!chatReader) {
+      chatReader = new ChatBoxReader();
+      // Read white text — game messages are white in RS3
+      // a1lib.colors is defined by alt1lib.js
+      if (typeof a1lib !== 'undefined' && a1lib.colors) {
+        chatReader.readargs = { colors: [a1lib.colors.white, a1lib.colors.black] };
+      }
+    }
+    return true;
+  }
+
   function startChatReading() {
     if (chatInterval) return;
-    if (typeof alt1 === 'undefined' || !alt1.permissionPixel) return;
-    // Poll chatbox every 2 seconds using Alt1 pixel API
-    chatInterval = setInterval(readChat, 2000);
+    if (typeof alt1 === 'undefined' || !alt1.permissionPixel) {
+      updateChatStatus('⚠ Pixel permission needed');
+      return;
+    }
+    if (!initChatReader()) return;
+    chatInterval = setInterval(readChat, 1500);
+    updateChatStatus('👁 Watching chat...');
   }
 
   function stopChatReading() {
     if (chatInterval) { clearInterval(chatInterval); chatInterval = null; }
+    chatReaderReady = false;
+    updateChatStatus('');
+  }
+
+  function updateChatStatus(msg) {
+    const el = document.getElementById('chat-status');
+    if (el) el.textContent = msg;
   }
 
   function readChat() {
     if (!autoDetect) return;
     if (typeof alt1 === 'undefined' || !alt1.permissionPixel || !alt1.rsLinked) return;
+    if (!chatReader) { initChatReader(); return; }
     try {
-      // Read a region of the screen where the chatbox typically is
-      // Chatbox is at the bottom of the RS window
-      const x = alt1.rsX, y = alt1.rsY, w = alt1.rsWidth, h = alt1.rsHeight;
-      const chatH = Math.round(h * 0.18); // bottom ~18% of window is chatbox
-      const chatY = y + h - chatH;
-      const id = alt1.bindRegion(x, chatY, w, chatH);
-      // Read lines of text from chat area
-      // Try reading from several y positions (each chat line ~14px tall)
-      const lines = [];
-      for (let row = 10; row < chatH - 10; row += 14) {
-        const str = alt1.bindReadString(id, 'chat', 10, row);
-        if (str && str.length > 5) lines.push(str);
+      // find() locates the chatbox on screen — must be called before read()
+      // Returns null if chatbox not found (e.g. minimised or off-screen)
+      const pos = chatReader.find();
+      if (!pos) {
+        if (chatReaderReady) updateChatStatus('⚠ Chatbox not found — make sure header bar is visible');
+        chatReaderReady = false;
+        return;
       }
-      // Only process new lines we haven't seen before
-      lines.forEach(line => {
+      if (!chatReaderReady) {
+        chatReaderReady = true;
+        updateChatStatus('👁 Watching chat...');
+      }
+      // read() returns array of { text, color } objects, one per visible line
+      const lines = chatReader.read();
+      if (!lines || !lines.length) return;
+      const texts = lines.map(l => (l.text || '').trim()).filter(t => t.length > 5);
+      // Only process lines we haven't seen in the last scan
+      texts.forEach(line => {
         if (!lastChatLines.includes(line)) onChatLine(line);
       });
-      lastChatLines = lines;
-    } catch(e) { /* silently ignore read errors */ }
+      lastChatLines = texts;
+    } catch(e) {
+      updateChatStatus('⚠ Read error: ' + e.message);
+    }
   }
 
   function onAutoDetectToggle(checked) {
