@@ -188,6 +188,8 @@
         <div id="debug-panel" style="display:none;margin-top:6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px;max-height:140px;overflow-y:auto">
           <div style="font-size:9px;color:var(--text-dim);font-family:'Cinzel',serif;letter-spacing:1px;margin-bottom:4px">LAST LINES READ FROM CHAT:</div>
           <div id="debug-lines" style="font-size:10px;color:var(--text);font-family:monospace;line-height:1.6"></div>
+          <div style="font-size:9px;color:var(--text-dim);font-family:'Cinzel',serif;letter-spacing:1px;margin-top:4px">PIXEL SAMPLES:</div>
+          <div id="debug-samples" style="font-size:9px;color:#8ab;font-family:monospace;word-break:break-all"></div>
         </div>
       </div>
     </div>
@@ -539,8 +541,9 @@
       const rsW = alt1.rsWidth, rsH = alt1.rsHeight;
 
       // Capture the chatbox area — bottom-left region
-      const chatAreaW = Math.round(rsW * 0.55); // left ~55% of screen
-      const chatAreaH = 175;                     // fixed ~175px chatbox height
+      // Increase height to 200 and use full width to be safe
+      const chatAreaW = Math.round(rsW * 0.6);
+      const chatAreaH = 200;
       const chatAreaX = rsX;
       const chatAreaY = rsY + rsH - chatAreaH;
 
@@ -559,6 +562,22 @@
         if (str && str.trim().length > 3) {
           lines.push(str.trim());
         }
+      }
+
+      // Debug: sample some pixel colours to verify we're hitting the chatbox
+      if (debugMode) {
+        try {
+          const samples = [];
+          for (let sy = 10; sy < chatAreaH - 10; sy += 30) {
+            const px = alt1.bindGetPixel(handle, 10, sy);
+            if (px !== undefined && px !== null) {
+              const r = (px >> 16) & 0xff, g = (px >> 8) & 0xff, b = px & 0xff;
+              samples.push(`y${sy}:rgb(${r},${g},${b})`);
+            }
+          }
+          const sampleEl = document.getElementById('debug-samples');
+          if (sampleEl) sampleEl.textContent = samples.join('  ');
+        } catch(pe) {}
       }
 
       if (!chatReaderReady && lines.length > 0) {
