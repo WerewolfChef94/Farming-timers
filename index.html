@@ -188,6 +188,7 @@
           <input type="number" id="chat-pos-h" value="175" min="50" max="600" style="width:56px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Crimson Pro',serif;font-size:12px;padding:3px 6px;outline:none;" oninput="saveChatPos()">
         </div>
         <div class="overlay-hint" style="margin-top:4px">X/Y = top-left corner of your chatbox in screen pixels. W/H = size of chatbox.</div>
+        <button onclick="previewChatRegion()" style="margin-top:6px;width:100%;background:var(--surface);border:1px solid var(--accent-dim);border-radius:4px;color:var(--accent);font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;padding:5px;cursor:pointer;">👁 PREVIEW REGION (3 sec)</button>
         <div class="setup-crops" id="autodetect-counts">
         </div>
         <div class="overlay-hint" style="margin-top:6px">Requires <strong style="color:var(--text)">Pixel</strong> permission in Alt1 settings.</div>
@@ -617,7 +618,39 @@
     }
   }
 
-  function onAutoDetectToggle(checked) {
+  function previewChatRegion() {
+    if (typeof alt1 === 'undefined' || !alt1.permissionOverlay) {
+      showFlash('⚠ Overlay permission needed');
+      return;
+    }
+    const { x, y, w, h } = getChatPos();
+    // Draw a bright green border rectangle around the selected region
+    // so you can see exactly what area will be captured
+    const colBorder = a1color(0, 255, 80, 255);     // bright green
+    const colFill   = a1color(0, 255, 80, 40);      // faint green fill
+    const ttl       = 3000; // 3 seconds
+    alt1.overLaySetGroup('chatpreview');
+    alt1.overLayClearGroup('chatpreview');
+    // Fill
+    alt1.overLayRect(colFill,   x,     y,     w,  h,  ttl, 0);
+    // Top edge
+    alt1.overLayRect(colBorder, x,     y,     w,  2,  ttl, 0);
+    // Bottom edge
+    alt1.overLayRect(colBorder, x,     y+h-2, w,  2,  ttl, 0);
+    // Left edge
+    alt1.overLayRect(colBorder, x,     y,     2,  h,  ttl, 0);
+    // Right edge
+    alt1.overLayRect(colBorder, x+w-2, y,     2,  h,  ttl, 0);
+    // Label at top-left
+    alt1.overLayText(`Chat capture (${w}x${h})`, colBorder, 11, x+4, y+3, ttl);
+    // Row markers — show where each line will be read
+    const colRow = a1color(255, 200, 0, 80);
+    for (let ry = 8; ry < h - 22; ry += 14) {
+      alt1.overLayRect(colRow, x+4, y+ry, w-8, 12, ttl, 0);
+    }
+    setTimeout(() => alt1.overLayClearGroup('chatpreview'), ttl + 100);
+    showFlash('👁 Preview drawn for 3s — look at your screen!');
+  }
     autoDetect = checked;
     localStorage.setItem('rs3_autodetect', String(checked));
     document.getElementById('autodetect-controls').style.display = checked ? '' : 'none';
