@@ -554,9 +554,11 @@
       // Tab bar at bottom ~20px, so scan from top down to ~155px
       const lines = [];
       for (let y = 8; y < chatAreaH - 22; y += 14) {
-        // Try reading from x=8 (left edge inside chatbox border)
-        const str = alt1.bindReadString(handle, 'chat', 8, y);
-        if (str && typeof str === 'string' && str.trim().length > 4) {
+        // Try 'chat' font first, fall back to 'rs2' — Alt1 version differences
+        let str = alt1.bindReadString(handle, 'chat', 8, y);
+        if (!str || str.trim().length < 3) str = alt1.bindReadString(handle, 'rs2', 8, y);
+        if (!str || str.trim().length < 3) str = alt1.bindReadString(handle, 'chat', 0, y);
+        if (str && typeof str === 'string' && str.trim().length > 3) {
           lines.push(str.trim());
         }
       }
@@ -572,9 +574,10 @@
       if (debugMode) {
         const dbg = document.getElementById('debug-lines');
         if (dbg) {
-          dbg.innerHTML = lines.length
+          const info = `rsX:${rsX} rsY:${rsY} rsW:${rsW} rsH:${rsH} | captureX:${chatAreaX} captureY:${chatAreaY} captureW:${chatAreaW} captureH:${chatAreaH} | handle:${handle}`;
+          dbg.innerHTML = `<div style="color:var(--text-dim);font-size:9px;margin-bottom:4px">${esc(info)}</div>` + (lines.length
             ? lines.map(l => `<div style="border-bottom:1px solid #1a2a1b;padding:1px 0">${esc(l)}</div>`).join('')
-            : '<div style="color:var(--text-dim)">— no lines captured —</div>';
+            : '<div style="color:var(--text-dim)">— no lines captured —</div>');
         }
       }
 
