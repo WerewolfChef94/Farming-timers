@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>RS3 Farming Timers</title>
   <meta name="alt1:name"        content="RS3 Farming Timers" />
-  <meta name="alt1:author"      content="WerewolfChef94" />
-  <meta name="alt1:description" content="Track your RS3 farming patch timers" />
+  <meta name="alt1:author"      content="You" />
+  <meta name="alt1:description" content="Track your RS3 farming patch timers by category" />
   <meta name="alt1:version"     content="4.0.0" />
   <meta name="alt1:perm"        content="pixel gamestate overlay" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -716,6 +716,11 @@
   // ═══════════════════════════════════════════════════════
   //  BOOT
   // ═══════════════════════════════════════════════════════
+  // Register app with Alt1 on load — triggers Add App button and permissions
+  if (window.alt1) {
+    alt1.identifyAppUrl("https://werewolfchef94.github.io/Farming-timers/appconfig.json");
+  }
+
   buildPanel();
   setInterval(tick, 1000);
   setInterval(saveTimers, 30000);
