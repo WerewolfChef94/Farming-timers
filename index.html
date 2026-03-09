@@ -88,6 +88,8 @@
     #btn-start { background:linear-gradient(135deg,var(--accent-dim),#2a5a2d); border-color:var(--accent); color:#fff; box-shadow:0 0 10px #5aad5e22; }
     #btn-start:hover:not(:disabled) { background:linear-gradient(135deg,var(--accent),#3a7a3d); }
     #btn-start:disabled { opacity:0.32; cursor:not-allowed; box-shadow:none; }
+    .btn-start-green { background:linear-gradient(135deg,var(--accent-dim),#2a5a2d); border-color:var(--accent); color:#fff; box-shadow:0 0 10px #5aad5e22; }
+    .btn-start-green:hover { background:linear-gradient(135deg,var(--accent),#3a7a3d); }
     #btn-cancel-run { background:transparent; border-color:var(--border); color:var(--text-dim); display:none; }
     #btn-cancel-run:hover { border-color:var(--warn); color:var(--warn); }
     #btn-reset { background:transparent; border-color:var(--border); color:var(--text-dim); display:none; }
@@ -120,6 +122,68 @@
     #plant-flash.show { display:block; animation:flashFade 1.4s ease forwards; }
     @keyframes flashFade { 0%{opacity:0;transform:translate(-50%,-54%)}12%{opacity:1;transform:translate(-50%,-50%)}75%{opacity:1}100%{opacity:0} }
     footer { margin-top:14px; text-align:center; font-size:10px; color:#2a3d2b; }
+
+    /* POF styles */
+    .pof-pen { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:8px 10px; margin-bottom:5px; position:relative; overflow:hidden; transition:border-color 0.25s; }
+    .pof-pen::before { content:''; position:absolute; left:0;top:0;bottom:0;width:3px; border-radius:6px 0 0 6px; background:var(--border); transition:background 0.3s; }
+    .pof-pen.pof-growing { border-color:var(--accent-dim); background:#0f1e10; }
+    .pof-pen.pof-growing::before { background:var(--accent-dim); }
+    .pof-pen.pof-ready { border-color:var(--accent); box-shadow:0 0 10px #5aad5e22; }
+    .pof-pen.pof-ready::before { background:var(--accent); animation:pulseStripe 1.5s infinite; }
+    /* pen header row */
+    .pof-header { display:flex; align-items:center; gap:7px; }
+    .pof-icon { font-size:15px; flex-shrink:0; }
+    .pof-meta { flex:0 0 70px; }
+    .pof-pen-name { font-family:'Cinzel',serif; font-size:11px; color:var(--gold); white-space:nowrap; }
+    .pof-animal-name { font-size:10px; color:var(--text-dim); margin-top:1px; }
+    .pof-right { flex:1; min-width:0; }
+    /* countdown mirrors patch timer */
+    .pof-countdown { font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
+    .pof-countdown.growing { color:var(--text); }
+    .pof-countdown.ready   { color:var(--accent); }
+    .pof-countdown.elder   { color:var(--accent-dim); }
+    /* timeline */
+    .pof-timeline-wrap { margin-top:8px; padding:0 4px; }
+    .pof-timeline-track { position:relative; height:5px; background:var(--bar-bg); border-radius:99px; margin-top:14px; margin-bottom:2px; }
+    .pof-timeline-fill { position:absolute; left:0; top:0; height:100%; border-radius:99px;
+      background:linear-gradient(90deg,var(--accent-dim),var(--accent)); transition:width 2s linear; }
+    .pof-timeline-fill.ready { background:linear-gradient(90deg,#3a7a3d,var(--accent)); animation:pulseGreen 1.5s infinite; }
+    /* stage marker dots */
+    .pof-marker { position:absolute; top:50%; transform:translate(-50%,-50%);
+      width:9px; height:9px; border-radius:50%; border:2px solid var(--bg); transition:background 0.3s; }
+    .pof-marker.done    { background:var(--accent-dim); }
+    .pof-marker.current { background:var(--accent); box-shadow:0 0 5px #5aad5e99; }
+    .pof-marker.future  { background:var(--bar-bg); border-color:var(--border); }
+    .pof-marker.ready   { background:var(--accent); animation:pulseGreen 1s infinite; }
+    /* marker labels sit ABOVE the track */
+    .pof-marker-label { position:absolute; bottom:9px; transform:translateX(-50%);
+      font-size:9px; color:var(--text-dim); white-space:nowrap; font-family:'Crimson Pro',serif; letter-spacing:0.2px; }
+    .pof-marker-label.active { color:var(--accent); font-weight:600; }
+    .pof-marker-label:first-of-type { transform:translateX(-10%); }
+    .pof-marker-label:last-of-type  { transform:translateX(-90%); }
+    /* actions */
+    .pof-actions { display:flex; gap:4px; margin-top:4px; flex-wrap:wrap; align-items:center; }
+    .pof-btn { font-family:'Cinzel',serif; font-size:9px; letter-spacing:0.5px; padding:3px 8px; border-radius:4px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text-dim); transition:all 0.2s; white-space:nowrap; }
+    .pof-btn:hover { border-color:var(--accent-dim); color:var(--accent); }
+    .pof-btn.pof-btn-danger:hover { border-color:var(--danger); color:var(--danger); }
+    .pof-btn.pof-btn-primary { border-color:var(--accent-dim); color:var(--accent); }
+    .pof-overlay-label { font-size:10px; color:var(--text-dim); white-space:nowrap; margin-left:4px; }
+    .pof-minimise { padding:2px 5px; font-size:10px; flex-shrink:0; border:1px solid var(--border); border-radius:4px; background:transparent; color:var(--text-dim); cursor:pointer; transition:all 0.2s; }
+    .pof-minimise:hover { border-color:var(--accent-dim); color:var(--accent); }
+    .pof-stage-btns { display:flex; gap:3px; flex-shrink:0; }
+    .pof-stage-btn { font-size:13px; padding:1px 3px; background:transparent; border:1px solid var(--border); border-radius:4px; cursor:pointer; transition:all 0.15s; line-height:1; opacity:0.4; }
+    .pof-stage-btn:hover { opacity:0.8; border-color:var(--accent-dim); }
+    .pof-stage-btn.active { opacity:1; border-color:var(--accent); background:#1a3a1c; }
+    /* farm sections */
+    .pof-farm-section { margin-bottom:14px; }
+    .pof-farm-header { border-left:3px solid var(--gold); padding:3px 0 3px 8px; margin-bottom:7px; }
+    .pof-farm-title { font-family:'Cinzel',serif; font-size:11px; letter-spacing:1px; }
+    /* empty pens */
+    .pof-empty { text-align:center; color:var(--text-dim); font-size:11px; font-style:italic; padding:16px 0; }
+    .pof-empty-row { display:flex; align-items:center; gap:6px; padding:5px 0; border-bottom:1px solid #1a251b; }
+    .pof-empty-label { font-size:11px; color:var(--text-dim); width:90px; flex-shrink:0; }
+    .pof-pen-select { flex:1; background:var(--bg); border:1px solid var(--border); border-radius:4px; color:var(--text); font-family:'Crimson Pro',serif; font-size:11px; padding:3px 5px; outline:none; }
+
   </style>
 </head>
 <body>
@@ -129,7 +193,8 @@
   </header>
   <div id="alt1-warning">⚠ Alt1 not detected — running in browser mode.</div>
   <div class="tab-bar">
-    <button class="tab-btn active" id="tab-run-btn"   onclick="switchTab('run')">▶ RUN</button>
+    <button class="tab-btn active" id="tab-run-btn"   onclick="switchTab('run')">🌱 CROPS</button>
+    <button class="tab-btn"        id="tab-pof-btn"   onclick="switchTab('pof')">🐄 POF</button>
     <button class="tab-btn"        id="tab-setup-btn" onclick="switchTab('setup')">⚙ SETUP</button>
   </div>
 
@@ -143,6 +208,13 @@
       <button class="btn" id="btn-start"      onclick="startRun()">▶ START RUN</button>
       <button class="btn" id="btn-cancel-run" onclick="cancelRun()">✕ CANCEL RUN</button>
       <button class="btn" id="btn-reset"      onclick="resetRun()">↺ NEW RUN</button>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-pof">
+    <div id="pof-panel"></div>
+    <div class="btn-row">
+      <button class="btn btn-start-green" onclick="pofStartAll()">▶ START ALL</button>
     </div>
   </div>
 
@@ -189,6 +261,20 @@
         <div class="overlay-hint" style="margin-top:6px">X=0,Y=0 = top-left of RS window.</div>
       </div>
     </div>
+    <div class="setup-section">
+      <div class="setup-section-header">
+        <div class="setup-section-title">🐄 Player-Owned Farm</div>
+      </div>
+      <div class="crop-row" style="margin-bottom:4px">
+        <span class="crop-row-label" style="flex:1">Show on overlay from stage</span>
+        <select id="pof-overlay-from" onchange="savePofOverlayFrom(this.value)" style="background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Crimson Pro',serif;font-size:12px;padding:4px 8px;outline:none;">
+          <option value="1">Adolescent / Child</option>
+          <option value="2">Adult</option>
+          <option value="3" selected>Elder</option>
+        </select>
+      </div>
+      <div class="overlay-hint">When a pen's next stage reaches this point or beyond, it appears on the RS overlay.</div>
+    </div>
     <div id="setup-panel"></div>
   </div>
 
@@ -202,7 +288,10 @@
     { id:'tree',     icon:'🌳', name:'Tree',        patchCount:7, crops:[{name:'Oak',duration:160},{name:'Willow',duration:280},{name:'Maple',duration:480},{name:'Yew',duration:960},{name:'Magic',duration:1600}] },
     { id:'fruit',    icon:'🍎', name:'Fruit Tree',  patchCount:7, crops:[{name:'Apple',duration:960},{name:'Banana',duration:960},{name:'Orange',duration:960},{name:'Curry',duration:960},{name:'Pineapple',duration:1120},{name:'Papaya',duration:1120},{name:'Palm',duration:1440},{name:'Dragonfruit',duration:1440}] },
     { id:'bush',     icon:'🫐', name:'Bush',        patchCount:5, crops:[{name:'Redberry',duration:160},{name:'Cadavaberry',duration:200},{name:'Dwellberry',duration:240},{name:'Jangerberry',duration:280},{name:'Whiteberry',duration:320},{name:'Poison Ivy',duration:400}] },
-    { id:'flower',   icon:'🌸', name:'Flower',      patchCount:5, crops:[{name:'Starbloom',duration:20},{name:'Limpwurt',duration:20}] }
+    { id:'flower',   icon:'🌸', name:'Flower',      patchCount:5, crops:[{name:'Starbloom',duration:20},{name:'Limpwurt',duration:20}] },
+    { id:'elder',    icon:'🪵', name:'Elder Tree',  patchCount:5, crops:[{name:'Elder',duration:3840}] },
+    { id:'hops',     icon:'🍺', name:'Hops',        patchCount:4, crops:[{name:'Barley',duration:60},{name:'Hammerstone',duration:60},{name:'Asgarnian',duration:80},{name:'Yanillian',duration:80},{name:'Krandorian',duration:100},{name:'Wildblood',duration:100}] },
+    { id:'allotment',icon:'🥕', name:'Allotment',   patchCount:6, crops:[{name:'Potato',duration:40},{name:'Onion',duration:40},{name:'Cabbage',duration:40},{name:'Tomato',duration:40},{name:'Sweetcorn',duration:60},{name:'Strawberry',duration:60},{name:'Watermelon',duration:80},{name:'Snape Grass',duration:80}] }
   ];
 
   let PATCHES     = loadPatches();
@@ -215,9 +304,10 @@
   let plantCounts = {};
   let lastPlantId = null;
   let notified    = new Set();
-  let overlayEnabled = localStorage.getItem('rs3_overlay_on') === 'true';
-  let overlayX       = parseInt(localStorage.getItem('rs3_overlay_x') || '10');
-  let overlayY       = parseInt(localStorage.getItem('rs3_overlay_y') || '30');
+  let overlayEnabled  = localStorage.getItem('rs3_overlay_on') === 'true';
+  let overlayX        = parseInt(localStorage.getItem('rs3_overlay_x') || '10');
+  let overlayY        = parseInt(localStorage.getItem('rs3_overlay_y') || '30');
+  let pofOverlayFrom  = parseInt(localStorage.getItem('rs3_pof_overlay_from') || '3');
 
   if (typeof alt1 === 'undefined') document.getElementById('alt1-warning').style.display = 'block';
   if (window.alt1) alt1.identifyAppUrl('https://werewolfchef94.github.io/Farming-timers/appconfig.json');
@@ -246,11 +336,14 @@
   function switchTab(tab) {
     activeTab = tab;
     document.getElementById('tab-run').classList.toggle('visible', tab==='run');
+    document.getElementById('tab-pof').classList.toggle('visible', tab==='pof');
     document.getElementById('tab-setup').classList.toggle('visible', tab==='setup');
     document.getElementById('tab-run-btn').classList.toggle('active', tab==='run');
+    document.getElementById('tab-pof-btn').classList.toggle('active', tab==='pof');
     document.getElementById('tab-setup-btn').classList.toggle('active', tab==='setup');
     if (tab==='setup') buildSetup();
     if (tab==='run')   buildPanel();
+    if (tab==='pof')   buildPofPanel();
   }
 
   // ── Run panel ─────────────────────────────────────────────
@@ -485,15 +578,17 @@
 
   function drawOverlay() {
     if (!overlayEnabled||typeof alt1==='undefined'||!alt1.permissionOverlay) return;
-    const ready=PATCHES.filter(pt=>{ const t=timers[pt.id]; return t&&(Date.now()-t.plantedAt)>=t.durationMs; });
-    if (!ready.length){alt1.overLayClearGroup('farming');return;}
+    const patchReady=PATCHES.filter(pt=>{ const t=timers[pt.id]; return t&&(Date.now()-t.plantedAt)>=t.durationMs; });
+    const pofReady=pofPens.filter(pen=>pofIsReadyForOverlay(pen));
+    const allReady=[...patchReady.map(pt=>({icon:pt.icon,name:pt.name,label:'Harvest'})),...pofReady.map(pen=>{const def=POF_ANIMALS.find(a=>a.id===pen.animalId);return{icon:def?def.icon:'🐄',name:pen.label,label:'→'+((def&&def.stageNames[pen.stageIndex+1])||'Next')};})];
+    if (!allReady.length){alt1.overLayClearGroup('farming');return;}
     alt1.overLaySetGroup('farming');alt1.overLayClearGroup('farming');
     const bx=(alt1.rsLinked?alt1.rsX:0)+overlayX, by=(alt1.rsLinked?alt1.rsY:0)+overlayY;
-    ready.forEach((pt,i)=>{
+    allReady.forEach((item,i)=>{
       const ry=by+i*ROW_H;
-      alt1.overLayRect(COL_BGDARK,bx,ry,LABEL_W+6+60,ROW_H-2,OVERLAY_TTL,0);
-      alt1.overLayText(pt.icon+' '+pt.name,COL_GOLD,FONT_SIZE,bx+2,ry+1,OVERLAY_TTL);
-      alt1.overLayText('Ready!',COL_GREEN,FONT_SIZE,bx+LABEL_W+6,ry+1,OVERLAY_TTL);
+      alt1.overLayRect(COL_BGDARK,bx,ry,LABEL_W+6+70,ROW_H-2,OVERLAY_TTL,0);
+      alt1.overLayText(item.icon+' '+item.name,COL_GOLD,FONT_SIZE,bx+2,ry+1,OVERLAY_TTL);
+      alt1.overLayText(item.label,COL_GREEN,FONT_SIZE,bx+LABEL_W+6,ry+1,OVERLAY_TTL);
     });
   }
 
@@ -527,6 +622,7 @@
   // ── Boot ─────────────────────────────────────────────────
   buildPanel();
   setInterval(tick,1000);
+  setInterval(tickPof,1000);
   setInterval(saveTimers,30000);
   document.getElementById('overlay-enabled').checked=overlayEnabled;
   document.getElementById('overlay-controls').style.display=overlayEnabled?'':'none';
@@ -535,6 +631,286 @@
   document.getElementById('autocount-enabled').checked=autoCount;
   document.getElementById('autocount-controls').style.display=autoCount?'':'none';
   document.getElementById('hotkey-select').value=hotkey;
+  document.getElementById('pof-overlay-from').value=String(pofOverlayFrom);
+  
+  // ── POF ──────────────────────────────────────────────────
+  // Stage times in minutes per transition
+  const POF_ANIMALS = [
+    { id:'none',       icon:'—',  name:'Empty',      penType:[],                                      stages:[], stageNames:[] },
+    // Manor Farm — Small pen
+    { id:'rabbit',     icon:'🐰', name:'Rabbit',     penType:['manor-s','manor-br'],                  stages:[12,21,27],           stageNames:['Child','Adolescent','Adult','Elder'] },
+    { id:'chicken',    icon:'🐔', name:'Chicken',    penType:['manor-s','manor-br'],                  stages:[25,38,76,113],        stageNames:['Egg','Child','Adolescent','Adult','Elder'] },
+    { id:'chinchompa', icon:'💥', name:'Chinchompa', penType:['manor-s','manor-br'],                  stages:[504,882,1134],        stageNames:['Child','Adolescent','Adult','Elder'] },
+    // Manor Farm — Medium pen
+    { id:'sheep',      icon:'🐑', name:'Sheep',      penType:['manor-m','manor-br'],                  stages:[24,42,54],            stageNames:['Child','Adolescent','Adult','Elder'] },
+    { id:'spider',     icon:'🕷', name:'Spider',     penType:['manor-m','manor-br'],                  stages:[151,227,454,680],     stageNames:['Egg','Child','Adolescent','Adult','Elder'] },
+    { id:'zygomite',   icon:'🍄', name:'Zygomite',   penType:['manor-m','manor-br'],                  stages:[1008,1764,2268],      stageNames:['Child','Adolescent','Adult','Elder'] },
+    // Manor Farm — Large pen
+    { id:'cow',        icon:'🐄', name:'Cow',        penType:['manor-l','manor-br'],                  stages:[72,126,162],          stageNames:['Child','Adolescent','Adult','Elder'] },
+    { id:'yak',        icon:'🦬', name:'Yak',        penType:['manor-l','manor-br'],                  stages:[806,1412,1814],       stageNames:['Child','Adolescent','Adult','Elder'] },
+    { id:'dragon',     icon:'🐉', name:'Dragon',     penType:['manor-l','manor-br'],                  stages:[1008,1512,3024,4536], stageNames:['Egg','Child','Adolescent','Adult','Elder'] },
+    // Anachronia — Small pen
+    { id:'frog',       icon:'🐸', name:'Frog',       penType:['anima-s','anima-br'],                  stages:[72,108,216,324],      stageNames:['Egg','Child','Adolescent','Adult','Elder'] },
+    { id:'salamander', icon:'🦎', name:'Salamander', penType:['anima-s','anima-br'],                  stages:[480,720,1440,2160],   stageNames:['Egg','Child','Adolescent','Adult','Elder'] },
+    // Anachronia — Medium pen
+    { id:'jadinko',    icon:'🌿', name:'Jadinko',    penType:['anima-m','anima-br'],                  stages:[408,612,1224,1836],   stageNames:['Egg','Child','Adolescent','Adult','Elder'] },
+    // Anachronia — Large pen (all dinos share same times here as a group)
+    { id:'dinosaur',   icon:'🦕', name:'Dinosaur',   penType:['anima-l','anima-br'],                  stages:[1080,1620,3240,4860], stageNames:['Egg','Child','Adolescent','Adult','Elder'] },
+  ];
+
+  // penType prefix used to filter allowed animals per pen
+  const POF_PENS = [
+    { id:'manor-s1', label:'Small Pen 1',    type:'manor-s' },
+    { id:'manor-s2', label:'Small Pen 2',    type:'manor-s' },
+    { id:'manor-m1', label:'Medium Pen 1',   type:'manor-m' },
+    { id:'manor-m2', label:'Medium Pen 2',   type:'manor-m' },
+    { id:'manor-l1', label:'Large Pen 1',    type:'manor-l' },
+    { id:'manor-l2', label:'Large Pen 2',    type:'manor-l' },
+    { id:'manor-br', label:'Breeding Pen',   type:'manor-br' },
+    { id:'anima-s1', label:'Anima Small 1',  type:'anima-s' },
+    { id:'anima-s2', label:'Anima Small 2',  type:'anima-s' },
+    { id:'anima-m1', label:'Anima Medium 1', type:'anima-m' },
+    { id:'anima-m2', label:'Anima Medium 2', type:'anima-m' },
+    { id:'anima-l1', label:'Anima Large 1',  type:'anima-l' },
+    { id:'anima-l2', label:'Anima Large 2',  type:'anima-l' },
+    { id:'anima-br', label:'Anima Breeding', type:'anima-br' },
+  ];
+
+  let pofPens = loadPofPens();
+
+  function loadPofPens() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('rs3_pof2') || '{}');
+      return POF_PENS.map(pen => Object.assign(
+        { animalId:'none', stageIndex:0, stageStartedAt:null },
+        saved[pen.id] || {},
+        { id:pen.id, label:pen.label }
+      ));
+    } catch { return POF_PENS.map(p => ({ ...p, animalId:'none', stageIndex:0, stageStartedAt:null })); }
+  }
+  function savePofPens() {
+    const out = {};
+    pofPens.forEach(p => { out[p.id] = { animalId:p.animalId, stageIndex:p.stageIndex, stageStartedAt:p.stageStartedAt, hidden:p.hidden, overlayFrom:p.overlayFrom }; });
+    localStorage.setItem('rs3_pof2', JSON.stringify(out));
+  }
+
+  function buildPofPanel() {
+    const panel = document.getElementById('pof-panel');
+    if (!panel) return;
+    const manorPens = pofPens.filter(p => p.id.startsWith('manor'));
+    const animaPens = pofPens.filter(p => p.id.startsWith('anima'));
+    function farmSection(label, color, pens) {
+      return `<div class="pof-farm-section">
+        <div class="pof-farm-header" style="border-color:${color}">
+          <span class="pof-farm-title" style="color:${color}">${label}</span>
+        </div>
+        ${pens.map(pen => pen.animalId === 'none' ? pofEmptyPenHtml(pen) : pofPenHtml(pen)).join('')}
+      </div>`;
+    }
+    panel.innerHTML = farmSection('\u{1F3E1} Manor Farm', '#c9a84c', manorPens) + farmSection('\u{1F995} Anachronia', '#6aad8e', animaPens);
+  }
+
+  function pofTimelineFillPct(pen, def) {
+    // Overall progress across the entire lifespan (0–100%)
+    const transitions = def.stages;
+    const totalMins = transitions.reduce((a,b)=>a+b, 0);
+    // minutes elapsed across all completed stages
+    let doneMins = 0;
+    for (let i=0; i<pen.stageIndex; i++) doneMins += transitions[i];
+    // add progress through current stage
+    if (pen.stageStartedAt && pen.stageIndex < transitions.length) {
+      const stageMins = transitions[pen.stageIndex];
+      const elapsedMins = (Date.now() - pen.stageStartedAt) / 60000;
+      doneMins += Math.min(stageMins, elapsedMins);
+    }
+    return Math.min(100, (doneMins / totalMins) * 100);
+  }
+
+  function pofPenHtml(pen) {
+    const def = POF_ANIMALS.find(a => a.id === pen.animalId);
+    if (!def || !def.stages.length) return pofEmptyPenHtml(pen);
+    const now = Date.now();
+    const stageNames=def.stageNames, transitions=def.stages, totalStages=stageNames.length;
+    const si=pen.stageIndex, isElder=si>=totalStages-1;
+    const stageMins=!isElder?transitions[si]:null;
+    const elapsed=pen.stageStartedAt?now-pen.stageStartedAt:0;
+    const remaining=stageMins?stageMins*60*1000-elapsed:0;
+    const stageReady=!isElder&&remaining<=0;
+    const hidden=pen.hidden;
+    const penCls=stageReady?'pof-pen pof-ready':pen.stageStartedAt?'pof-pen pof-growing':'pof-pen';
+
+    // ── countdown text (top-right) ──
+    let countdownTxt, countdownCls;
+    if (isElder)        { countdownTxt='\u2714 Elder'; countdownCls='elder'; }
+    else if (stageReady){ countdownTxt=`\u2714 Ready \u2192 ${stageNames[si+1]}`; countdownCls='ready'; }
+    else if (pen.stageStartedAt) { countdownTxt=formatMs(remaining); countdownCls='growing'; }
+    else                { countdownTxt=stageNames[si]; countdownCls=''; }
+
+    // ── stage buttons (only before timer started) ──
+    const STAGE_ICONS = { 'Egg':'🥚', 'Child':'🐣', 'Adolescent':'🌱', 'Adult':'🌿', 'Elder':'🌳' };
+    const stageSel = !pen.stageStartedAt && !isElder && !hidden
+      ? `<div class="pof-stage-btns" onclick="event.stopPropagation()">
+          ${stageNames.slice(0,-1).map((sn,i) =>
+            `<button class="pof-stage-btn${si===i?' active':''}" onclick="event.stopPropagation();pofSetStageIdx('${pen.id}',${i})" title="${sn}">${STAGE_ICONS[sn]||'●'}</button>`
+          ).join('')}
+        </div>`
+      : '';
+
+    // ── timeline (always rendered inline in header) ──
+    const totalMins = transitions.reduce((a,b)=>a+b,0);
+    let cumMins = 0, markersHtml = '';
+    for (let i=0; i<stageNames.length; i++) {
+      const pct = i===0 ? 0 : i===stageNames.length-1 ? 100 : (cumMins/totalMins)*100;
+      let markerCls, labelCls='';
+      if (i < si)        markerCls='pof-marker done';
+      else if (i === si) { markerCls = stageReady ? 'pof-marker ready' : 'pof-marker current'; labelCls='active'; }
+      else               markerCls='pof-marker future';
+      markersHtml+=`<div class="${markerCls}" style="left:${pct.toFixed(2)}%"></div>
+        <div class="pof-marker-label ${labelCls}" style="left:${pct.toFixed(2)}%">${stageNames[i]}</div>`;
+      if (i < transitions.length) cumMins += transitions[i];
+    }
+    const fillPct = isElder ? 100 : pofTimelineFillPct(pen, def);
+    const fillCls = stageReady ? 'pof-timeline-fill ready' : 'pof-timeline-fill';
+
+    // ── actions (only when expanded) ──
+    let actionsHtml = '';
+    // ── action buttons — always visible, sit at end of header ──
+    let actHtml = '';
+    if (!pen.stageStartedAt && !isElder) actHtml+=`<button class="btn-patch-action btn-go" onclick="event.stopPropagation();pofStart('${pen.id}')">\u25b6</button>`;
+    if (stageReady) actHtml+=`<button class="btn-patch-action btn-go" onclick="event.stopPropagation();pofAdvance('${pen.id}')">\u25b6</button>`;
+    if (si>0||pen.stageStartedAt) actHtml+=`<button class="btn-patch-action btn-restart" onclick="event.stopPropagation();pofReset('${pen.id}')">\u21ba</button>`;
+    actHtml+=`<button class="btn-cancel-timer" onclick="event.stopPropagation();pofClear('${pen.id}')" title="Clear pen">\u2715</button>`;
+
+    return `<div class="${penCls}" id="pof-row-${pen.id}" onclick="pofToggleHide('${pen.id}')" style="cursor:pointer">
+      <div class="pof-header">
+        <span class="pof-icon">${def.icon}</span>
+        <div class="pof-meta">
+          <div class="pof-pen-name">${pen.label}</div>
+          <div class="pof-animal-name">${def.name}</div>
+        </div>
+        <div class="pof-right">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px">
+            ${stageSel}
+            <span class="pof-countdown ${countdownCls}" id="pof-time-${pen.id}">${countdownTxt}</span>
+          </div>
+          <div class="pof-timeline-track" id="pof-track-${pen.id}">
+            <div class="${fillCls}" id="pof-bar-${pen.id}" style="width:${fillPct.toFixed(2)}%"></div>
+            ${markersHtml}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:2px;flex-shrink:0">${actHtml}</div>
+      </div>
+    </div>`;
+  }
+
+  function pofEmptyPenHtml(pen) {
+    const penDef=POF_PENS.find(p=>p.id===pen.id);
+    const animalOpts=POF_ANIMALS.filter(a=>a.id!=='none'&&penDef&&a.penType.includes(penDef.type)).map(a=>`<option value="${a.id}">${a.icon} ${a.name}</option>`).join('');
+    return `<div class="pof-empty-row" id="pof-row-${pen.id}">
+      <span class="pof-empty-label">${pen.label}</span>
+      <select class="pof-pen-select" onchange="pofSetAnimal('${pen.id}',this.value)">
+        <option value="none">\u2014 empty \u2014</option>${animalOpts}
+      </select>
+    </div>`;
+  }
+
+  function pofSetAnimal(penId, val) {
+    const pen=pofPens.find(p=>p.id===penId); if(!pen) return;
+    if (!val||val==='none') return;
+    pofPens.forEach(p => { if (p.id!==penId && p.animalId!=='none') p.hidden=true; });
+    pen.animalId=val; pen.stageIndex=0; pen.stageStartedAt=null; pen._notified=false; pen.hidden=false;
+    savePofPens(); buildPofPanel();
+  }
+  function pofStartAll() {
+    let any = false;
+    pofPens.forEach(pen => {
+      if (pen.animalId !== 'none' && !pen.stageStartedAt) {
+        const def = POF_ANIMALS.find(a => a.id === pen.animalId);
+        if (def && pen.stageIndex < def.stageNames.length - 1) {
+          pen.stageStartedAt = Date.now(); pen._notified = false; any = true;
+        }
+      }
+    });
+    if (any) { savePofPens(); buildPofPanel(); }
+  }
+  function pofStart(penId) {
+    const pen=pofPens.find(p=>p.id===penId); if(!pen) return;
+    pofPens.forEach(p => { if (p.id!==penId && p.animalId!=='none') p.hidden=true; });
+    pen.stageStartedAt=Date.now(); pen._notified=false; pen.hidden=false;
+    savePofPens(); buildPofPanel();
+  }
+  function pofAdvance(penId) {
+    const pen=pofPens.find(p=>p.id===penId); if(!pen) return;
+    const def=POF_ANIMALS.find(a=>a.id===pen.animalId); if(!def) return;
+    pofPens.forEach(p => { if (p.id!==penId && p.animalId!=='none') p.hidden=true; });
+    if (pen.stageIndex<def.stageNames.length-1) { pen.stageIndex++; pen.stageStartedAt=Date.now(); pen._notified=false; pen.hidden=false; }
+    savePofPens(); buildPofPanel();
+  }
+  function pofReset(penId) {
+    const pen=pofPens.find(p=>p.id===penId); if(!pen) return;
+    pen.stageIndex=0; pen.stageStartedAt=null; pen._notified=false;
+    savePofPens(); buildPofPanel();
+  }
+  function pofClear(penId) {
+    const pen=pofPens.find(p=>p.id===penId); if(!pen) return;
+    pen.animalId='none'; pen.stageIndex=0; pen.stageStartedAt=null; pen._notified=false;
+    savePofPens(); buildPofPanel();
+  }
+  function pofSetStageIdx(penId, val) {
+    const pen=pofPens.find(p=>p.id===penId); if(!pen) return;
+    pen.stageIndex=parseInt(val); pen.stageStartedAt=null; pen._notified=false;
+    savePofPens(); buildPofPanel();
+  }
+  function pofToggleHide(penId) {
+    const pen=pofPens.find(p=>p.id===penId); if(!pen) return;
+    const opening = pen.hidden;
+    if (opening) pofPens.forEach(p => { if (p.id!==penId && p.animalId!=='none') p.hidden=true; });
+    pen.hidden=!pen.hidden;
+    savePofPens(); buildPofPanel();
+  }
+  function savePofOverlayFrom(val) {
+    pofOverlayFrom = parseInt(val);
+    localStorage.setItem('rs3_pof_overlay_from', String(pofOverlayFrom));
+  }
+  function pofIsReadyForOverlay(pen) {
+    if (pen.animalId==='none'||!pen.stageStartedAt) return false;
+    const def=POF_ANIMALS.find(a=>a.id===pen.animalId); if(!def||!def.stages.length) return false;
+    const totalStages=def.stageNames.length;
+    if (pen.stageIndex>=totalStages-1) return false;
+    const stageMins=def.stages[pen.stageIndex];
+    if ((Date.now()-pen.stageStartedAt)<stageMins*60*1000) return false;
+    return (pen.stageIndex+1) >= pofOverlayFrom;
+  }
+  function tickPof() {
+    pofPens.forEach(pen => {
+      if (pen.animalId==='none'||!pen.stageStartedAt) return;
+      const def=POF_ANIMALS.find(a=>a.id===pen.animalId); if(!def||!def.stages.length) return;
+      const totalStages=def.stageNames.length, si=pen.stageIndex;
+      if (si>=totalStages-1) return;
+      const stageMins=def.stages[si], elapsed=Date.now()-pen.stageStartedAt, remaining=stageMins*60*1000-elapsed;
+      const stageReady=remaining<=0;
+      if (activeTab==='pof'&&!pen.hidden) {
+        const timeEl = document.getElementById(`pof-time-${pen.id}`);
+        const barEl  = document.getElementById(`pof-bar-${pen.id}`);
+        const row    = document.getElementById(`pof-row-${pen.id}`);
+        if (stageReady) {
+          if (timeEl){ timeEl.textContent=`\u2714 Ready \u2192 ${def.stageNames[si+1]}`; timeEl.className='pof-countdown ready'; }
+          if (barEl) { barEl.className='pof-timeline-fill ready'; barEl.style.width='100%'; }
+          if (row)   { row.className='pof-pen pof-ready'; }
+        } else {
+          if (timeEl){ timeEl.textContent=formatMs(remaining); timeEl.className='pof-countdown growing'; }
+          if (barEl) { barEl.style.width=pofTimelineFillPct(pen,def).toFixed(2)+'%'; }
+        }
+      }
+      if (stageReady&&!pen._notified) {
+        pen._notified=true;
+        if ('Notification'in window&&Notification.permission==='granted')
+          new Notification(`${def.icon} ${pen.label} ready!`,{body:`${def.name} ready \u2192 ${def.stageNames[si+1]}`,silent:false});
+      }
+    });
+    drawOverlay();
+  }
+
   </script>
 </body>
 </html>
