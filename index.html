@@ -574,7 +574,7 @@
   // ── Overlay ───────────────────────────────────────────────
   function a1color(r,g,b,a){ a=a===undefined?255:a; return((a&0xff)<<24)|((b&0xff)<<16)|((g&0xff)<<8)|(r&0xff); }
   const COL_WHITE=a1color(255,255,255),COL_GREEN=a1color(90,200,100),COL_ORANGE=a1color(220,140,60),COL_GOLD=a1color(210,175,80),COL_BGDARK=a1color(10,20,10,200),COL_BGREEN=a1color(58,122,61,220),COL_BORANGE=a1color(160,96,48,220);
-  const OVERLAY_TTL=1800,ROW_H=18,BAR_W=80,BAR_H=4,FONT_SIZE=12,LABEL_W=52;
+  const OVERLAY_TTL=1800,ROW_H=28,FONT_SIZE=11,COL_W=130;
 
   function drawOverlay() {
     if (!overlayEnabled||typeof alt1==='undefined'||!alt1.permissionOverlay) return;
@@ -586,9 +586,9 @@
     const bx=(alt1.rsLinked?alt1.rsX:0)+overlayX, by=(alt1.rsLinked?alt1.rsY:0)+overlayY;
     allReady.forEach((item,i)=>{
       const ry=by+i*ROW_H;
-      alt1.overLayRect(COL_BGDARK,bx,ry,LABEL_W+6+70,ROW_H-2,OVERLAY_TTL,0);
-      alt1.overLayText(item.icon+' '+item.name,COL_GOLD,FONT_SIZE,bx+2,ry+1,OVERLAY_TTL);
-      alt1.overLayText(item.label,COL_GREEN,FONT_SIZE,bx+LABEL_W+6,ry+1,OVERLAY_TTL);
+       alt1.overLayRect(COL_BGDARK,bx,ry,COL_W,ROW_H-2,OVERLAY_TTL,0);
+       alt1.overLayText(item.icon+' '+item.name,COL_GOLD,FONT_SIZE,bx+4,ry+2,OVERLAY_TTL);
+       alt1.overLayText(item.label,COL_GREEN,FONT_SIZE,bx+4,ry+14,OVERLAY_TTL);
     });
   }
 
