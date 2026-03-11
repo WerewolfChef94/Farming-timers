@@ -585,8 +585,8 @@
     const animaReady=pofReady.filter(pen=>pen.id.startsWith('anima'));
     const allReady=[
       ...patchItems,
-      ...(manorReady.length?[{icon:'\u{1F3E1}',name:'Manor Farm'}]:[]),
-      ...(animaReady.length?[{icon:'\u{1F995}',name:'Anachronia'}]:[]),
+      ...(manorReady.length?[{icon:'[M]',name:'Manor Farm'}]:[]),
+      ...(animaReady.length?[{icon:'[A]',name:'Anachronia'}]:[]),
     ];
     if (!allReady.length){alt1.overLayClearGroup('farming');return;}
     alt1.overLaySetGroup('farming');alt1.overLayClearGroup('farming');
