@@ -268,9 +268,9 @@
       <div class="crop-row" style="margin-bottom:4px">
         <span class="crop-row-label" style="flex:1">Show on overlay from stage</span>
         <select id="pof-overlay-from" onchange="savePofOverlayFrom(this.value)" style="background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Crimson Pro',serif;font-size:12px;padding:4px 8px;outline:none;">
-          <option value="1">Adolescent / Child</option>
-          <option value="2">Adult</option>
-          <option value="3" selected>Elder</option>
+          <option value="Adolescent">Adolescent / Child</option>
+          <option value="Adult">Adult</option>
+          <option value="Elder" selected>Elder</option>
         </select>
       </div>
       <div class="overlay-hint">When a pen's next stage reaches this point or beyond, it appears on the RS overlay.</div>
@@ -307,7 +307,7 @@
   let overlayEnabled  = localStorage.getItem('rs3_overlay_on') === 'true';
   let overlayX        = parseInt(localStorage.getItem('rs3_overlay_x') || '10');
   let overlayY        = parseInt(localStorage.getItem('rs3_overlay_y') || '30');
-  let pofOverlayFrom  = parseInt(localStorage.getItem('rs3_pof_overlay_from') || '3');
+  let pofOverlayFrom  = localStorage.getItem('rs3_pof_overlay_from') || 'Elder';
 
   if (typeof alt1 === 'undefined') document.getElementById('alt1-warning').style.display = 'block';
   if (window.alt1) alt1.identifyAppUrl('https://werewolfchef94.github.io/Farming-timers/appconfig.json');
@@ -632,7 +632,7 @@
   document.getElementById('autocount-enabled').checked=autoCount;
   document.getElementById('autocount-controls').style.display=autoCount?'':'none';
   document.getElementById('hotkey-select').value=hotkey;
-  document.getElementById('pof-overlay-from').value=String(pofOverlayFrom);
+  document.getElementById('pof-overlay-from').value=pofOverlayFrom;
   
   // ── POF ──────────────────────────────────────────────────
   // Stage times in minutes per transition
@@ -870,8 +870,8 @@
     savePofPens(); buildPofPanel();
   }
   function savePofOverlayFrom(val) {
-    pofOverlayFrom = parseInt(val);
-    localStorage.setItem('rs3_pof_overlay_from', String(pofOverlayFrom));
+    pofOverlayFrom = val;
+    localStorage.setItem('rs3_pof_overlay_from', val);
   }
   function pofIsReadyForOverlay(pen) {
     if (pen.animalId==='none'||!pen.stageStartedAt) return false;
@@ -880,7 +880,12 @@
     if (pen.stageIndex>=totalStages-1) return false;
     const stageMins=def.stages[pen.stageIndex];
     if ((Date.now()-pen.stageStartedAt)<stageMins*60*1000) return false;
-    return (pen.stageIndex+1) >= pofOverlayFrom;
+    // Check next stage name meets the threshold
+    const nextStageName=def.stageNames[pen.stageIndex+1];
+    const order=['Child','Adolescent','Adult','Elder'];
+    const nextRank=order.indexOf(nextStageName);
+    const threshRank=order.indexOf(pofOverlayFrom);
+    return nextRank>=threshRank;
   }
   function tickPof() {
     pofPens.forEach(pen => {
