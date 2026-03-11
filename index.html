@@ -581,13 +581,8 @@
     const patchReady=PATCHES.filter(pt=>{ const t=timers[pt.id]; return t&&(Date.now()-t.plantedAt)>=t.durationMs; });
     const pofReady=pofPens.filter(pen=>pofIsReadyForOverlay(pen));
     const patchItems=patchReady.map(pt=>({icon:pt.icon,name:pt.name}));
-    const manorReady=pofReady.filter(pen=>pen.id.startsWith('manor'));
-    const animaReady=pofReady.filter(pen=>pen.id.startsWith('anima'));
-    const allReady=[
-      ...patchItems,
-      ...(manorReady.length?[{icon:'[M]',name:'Manor Farm'}]:[]),
-      ...(animaReady.length?[{icon:'[A]',name:'Anachronia'}]:[]),
-    ];
+    const pofItems=pofReady.map(pen=>({icon:POF_ANIMALS.find(a=>a.id===pen.animalId)?.icon||'?',name:pen.label}));
+    const allReady=[...patchItems,...pofItems];
     if (!allReady.length){alt1.overLayClearGroup('farming');return;}
     alt1.overLaySetGroup('farming');alt1.overLayClearGroup('farming');
     const bx=(alt1.rsLinked?alt1.rsX:0)+overlayX, by=(alt1.rsLinked?alt1.rsY:0)+overlayY;
